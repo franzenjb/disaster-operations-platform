@@ -7,11 +7,13 @@ import { createClient } from '@supabase/supabase-js';
 import { DisasterOperation } from '../core/DisasterOperation';
 
 // Get environment variables - these will be set in .env.local
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// Create Supabase client only if properly configured
+const isConfigured = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseAnonKey !== 'placeholder-key';
+
+export const supabase = isConfigured ? createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
@@ -21,7 +23,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       eventsPerSecond: 10,
     },
   },
-});
+}) : null;
 
 // Database types
 export interface OperationRecord {
@@ -69,6 +71,8 @@ export interface IAPRecord {
 export class DatabaseService {
   // Operations
   static async createOperation(operation: DisasterOperation): Promise<OperationRecord | null> {
+    if (!supabase) return null;
+    
     try {
       const { data, error } = await supabase
         .from('operations')
@@ -93,6 +97,8 @@ export class DatabaseService {
   }
 
   static async getOperation(operationId: string): Promise<OperationRecord | null> {
+    if (!supabase) return null;
+    
     try {
       const { data, error } = await supabase
         .from('operations')
@@ -109,6 +115,8 @@ export class DatabaseService {
   }
 
   static async updateOperation(operationId: string, updates: Partial<DisasterOperation>): Promise<boolean> {
+    if (!supabase) return false;
+    
     try {
       const { error } = await supabase
         .from('operations')
@@ -127,6 +135,8 @@ export class DatabaseService {
   }
 
   static async listOperations(): Promise<OperationRecord[]> {
+    if (!supabase) return [];
+    
     try {
       const { data, error } = await supabase
         .from('operations')
@@ -143,6 +153,8 @@ export class DatabaseService {
 
   // Service Line Updates
   static async recordServiceLineUpdate(update: ServiceLineUpdate): Promise<boolean> {
+    if (!supabase) return false;
+    
     try {
       const { error } = await supabase
         .from('service_line_updates')
@@ -162,6 +174,8 @@ export class DatabaseService {
     startDate?: string,
     endDate?: string
   ): Promise<ServiceLineUpdate[]> {
+    if (!supabase) return [];
+    
     try {
       let query = supabase
         .from('service_line_updates')
@@ -192,6 +206,8 @@ export class DatabaseService {
 
   // IAP Management
   static async saveIAP(iap: IAPRecord): Promise<IAPRecord | null> {
+    if (!supabase) return null;
+    
     try {
       const { data, error } = await supabase
         .from('iaps')
@@ -211,6 +227,8 @@ export class DatabaseService {
   }
 
   static async getIAP(operationId: string, iapNumber: string): Promise<IAPRecord | null> {
+    if (!supabase) return null;
+    
     try {
       const { data, error } = await supabase
         .from('iaps')
@@ -228,6 +246,8 @@ export class DatabaseService {
   }
 
   static async listIAPs(operationId: string): Promise<IAPRecord[]> {
+    if (!supabase) return [];
+    
     try {
       const { data, error } = await supabase
         .from('iaps')
@@ -248,6 +268,8 @@ export class DatabaseService {
     operationId: string,
     callback: (payload: any) => void
   ) {
+    if (!supabase) return null;
+    
     return supabase
       .channel(`operation-${operationId}`)
       .on(
@@ -274,6 +296,7 @@ export class DatabaseService {
   }
 
   static unsubscribeFromOperationUpdates(operationId: string) {
+    if (!supabase) return;
     return supabase.removeChannel(`operation-${operationId}`);
   }
 
