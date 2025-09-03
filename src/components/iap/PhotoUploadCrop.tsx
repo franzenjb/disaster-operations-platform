@@ -1,10 +1,12 @@
 /**
  * Photo Upload and Crop Component
- * Handles image upload, preview, and cropping functionality
+ * Handles image upload with interactive cropping functionality
  */
 
 import React, { useState, useRef, useCallback } from 'react';
-import { PhotoIcon, TrashIcon } from '@heroicons/react/24/outline';
+import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
+import 'react-image-crop/dist/ReactCrop.css';
+import { PhotoIcon, TrashIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 interface PhotoUploadCropProps {
   imageUrl: string | null;
@@ -24,8 +26,33 @@ export function PhotoUploadCrop({
   const [isDragging, setIsDragging] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tempImageUrl, setTempImageUrl] = useState<string | null>(null);
+  const [crop, setCrop] = useState<Crop>();
+  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
+  const [isCropping, setIsCropping] = useState(false);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  
+  // Initialize crop when image loads
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const { width, height } = e.currentTarget;
+    const crop = centerCrop(
+      makeAspectCrop(
+        {
+          unit: '%',
+          width: 90,
+        },
+        aspectRatio,
+        width,
+        height
+      ),
+      width,
+      height
+    );
+    setCrop(crop);
+  };
   
   const handleFileSelect = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -43,65 +70,10 @@ export function PhotoUploadCrop({
     
     const reader = new FileReader();
     reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        // Create canvas for resizing
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        
-        // Calculate dimensions maintaining aspect ratio
-        let width = img.width;
-        let height = img.height;
-        
-        // Scale down if needed
-        if (width > maxWidth || height > maxHeight) {
-          const scale = Math.min(maxWidth / width, maxHeight / height);
-          width = Math.floor(width * scale);
-          height = Math.floor(height * scale);
-        }
-        
-        // Apply aspect ratio cropping if specified
-        if (aspectRatio) {
-          const currentRatio = width / height;
-          if (currentRatio > aspectRatio) {
-            // Image is too wide
-            const newWidth = height * aspectRatio;
-            const xOffset = (width - newWidth) / 2;
-            canvas.width = newWidth;
-            canvas.height = height;
-            ctx.drawImage(img, xOffset, 0, newWidth, height, 0, 0, newWidth, height);
-          } else if (currentRatio < aspectRatio) {
-            // Image is too tall
-            const newHeight = width / aspectRatio;
-            const yOffset = (height - newHeight) / 2;
-            canvas.width = width;
-            canvas.height = newHeight;
-            ctx.drawImage(img, 0, yOffset, width, newHeight, 0, 0, width, newHeight);
-          } else {
-            // Perfect ratio
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(img, 0, 0, width, height);
-          }
-        } else {
-          canvas.width = width;
-          canvas.height = height;
-          ctx.drawImage(img, 0, 0, width, height);
-        }
-        
-        // Convert to data URL with compression
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        onImageChange(dataUrl);
-        setIsLoading(false);
-      };
-      
-      img.onerror = () => {
-        setError('Failed to load image');
-        setIsLoading(false);
-      };
-      
-      img.src = e.target?.result as string;
+      const dataUrl = e.target?.result as string;
+      setTempImageUrl(dataUrl);
+      setIsCropping(true);
+      setIsLoading(false);
     };
     
     reader.onerror = () => {
@@ -110,7 +82,98 @@ export function PhotoUploadCrop({
     };
     
     reader.readAsDataURL(file);
-  }, [aspectRatio, maxWidth, maxHeight, onImageChange]);
+  }, []);
+  
+  const performCrop = useCallback(() => {
+    if (!completedCrop || !imgRef.current || !canvasRef.current) {
+      return;
+    }
+    
+    const image = imgRef.current;
+    const canvas = canvasRef.current;
+    const crop = completedCrop;
+    
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    
+    canvas.width = crop.width;
+    canvas.height = crop.height;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    ctx.imageSmoothingQuality = 'high';
+    
+    ctx.drawImage(
+      image,
+      crop.x * scaleX,
+      crop.y * scaleY,
+      crop.width * scaleX,
+      crop.height * scaleY,
+      0,
+      0,
+      crop.width,
+      crop.height
+    );
+    
+    // Resize if needed
+    if (crop.width > maxWidth || crop.height > maxHeight) {
+      const scale = Math.min(maxWidth / crop.width, maxHeight / crop.height);
+      const finalWidth = Math.floor(crop.width * scale);
+      const finalHeight = Math.floor(crop.height * scale);
+      
+      const resizeCanvas = document.createElement('canvas');
+      resizeCanvas.width = finalWidth;
+      resizeCanvas.height = finalHeight;
+      const resizeCtx = resizeCanvas.getContext('2d');
+      
+      if (resizeCtx) {
+        resizeCtx.imageSmoothingQuality = 'high';
+        resizeCtx.drawImage(canvas, 0, 0, finalWidth, finalHeight);
+        
+        resizeCanvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                const result = e.target?.result as string;
+                onImageChange(result);
+                setIsCropping(false);
+                setTempImageUrl(null);
+              };
+              reader.readAsDataURL(blob);
+            }
+          },
+          'image/jpeg',
+          0.9
+        );
+      }
+    } else {
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const result = e.target?.result as string;
+              onImageChange(result);
+              setIsCropping(false);
+              setTempImageUrl(null);
+            };
+            reader.readAsDataURL(blob);
+          }
+        },
+        'image/jpeg',
+        0.9
+      );
+    }
+  }, [completedCrop, maxWidth, maxHeight, onImageChange]);
+  
+  const cancelCrop = useCallback(() => {
+    setIsCropping(false);
+    setTempImageUrl(null);
+    setCrop(undefined);
+    setCompletedCrop(undefined);
+  }, []);
   
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -146,6 +209,58 @@ export function PhotoUploadCrop({
     }
   }, [onImageChange]);
   
+  // Cropping interface
+  if (isCropping && tempImageUrl) {
+    return (
+      <div className="photo-upload-crop">
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold mb-2">Crop Your Image</h3>
+          <p className="text-sm text-gray-600">Drag the corners to adjust the crop area</p>
+        </div>
+        
+        <div className="border rounded-lg overflow-hidden bg-gray-100" style={{ maxHeight: '500px' }}>
+          <ReactCrop
+            crop={crop}
+            onChange={(_, percentCrop) => setCrop(percentCrop)}
+            onComplete={(c) => setCompletedCrop(c)}
+            aspect={aspectRatio}
+            minWidth={100}
+            minHeight={100}
+          >
+            <img
+              ref={imgRef}
+              src={tempImageUrl}
+              alt="Crop preview"
+              style={{ maxWidth: '100%', maxHeight: '500px' }}
+              onLoad={onImageLoad}
+            />
+          </ReactCrop>
+        </div>
+        
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={performCrop}
+            className="px-4 py-2 text-sm font-medium text-white bg-red-cross-red rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center gap-2"
+          >
+            <CheckIcon className="w-4 h-4" />
+            Apply Crop
+          </button>
+          <button
+            onClick={cancelCrop}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 flex items-center gap-2"
+          >
+            <XMarkIcon className="w-4 h-4" />
+            Cancel
+          </button>
+        </div>
+        
+        {/* Hidden canvas for cropping */}
+        <canvas ref={canvasRef} style={{ display: 'none' }} />
+      </div>
+    );
+  }
+  
+  // Main upload/display interface
   return (
     <div className="photo-upload-crop">
       {imageUrl ? (
@@ -207,6 +322,9 @@ export function PhotoUploadCrop({
             <p className="mt-1 text-xs text-gray-500">
               PNG, JPG, GIF up to 10MB
             </p>
+            <p className="mt-2 text-xs text-gray-500">
+              You'll be able to crop the image after uploading
+            </p>
           </div>
           
           <input
@@ -224,9 +342,6 @@ export function PhotoUploadCrop({
           {error}
         </div>
       )}
-      
-      {/* Hidden canvas for image processing */}
-      <canvas ref={canvasRef} style={{ display: 'none' }} />
     </div>
   );
 }
