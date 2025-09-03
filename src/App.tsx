@@ -10,11 +10,13 @@ import { useOperationStore } from './stores/useOperationStore';
 import { StartOperation } from './components/StartOperation';
 import { OperationDashboard } from './components/OperationDashboard';
 import { SystemStats } from './components/SystemStats';
+import { ICS215Demo } from './components/ics215/ICS215Demo';
 import { eventBus, EventType } from './core/EventBus';
 import { useSupabaseSync } from './hooks/useSupabaseSync';
 
 export function App() {
   const currentOperation = useOperationStore(state => state.currentOperation);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'ics215'>('dashboard');
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline'>(
     navigator.onLine ? 'online' : 'offline'
   );
@@ -34,6 +36,11 @@ export function App() {
       // Cleanup would go here
     };
   }, []);
+
+  // Handle view changes
+  if (currentView === 'ics215') {
+    return <ICS215Demo />;
+  }
   
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,6 +57,30 @@ export function App() {
                   {currentOperation.id} - {currentOperation.operationName}
                 </span>
               )}
+            </div>
+            
+            {/* Navigation */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  currentView === 'dashboard'
+                    ? 'bg-red-cross-red text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={() => setCurrentView('ics215')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  currentView === 'ics215'
+                    ? 'bg-red-cross-red text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                ICS Form 215
+              </button>
             </div>
             
             <div className="flex items-center gap-4">
