@@ -169,8 +169,11 @@ export function ShelteringServiceLine() {
                 </label>
                 <input
                   type="number"
-                  value={sheltering.overnightStays || ''}
-                  onChange={(e) => handleUpdate('overnightStays', parseInt(e.target.value) || 0)}
+                  value={(sheltering.overnightStays && sheltering.overnightStays[0]?.value) || ''}
+                  onChange={(e) => handleUpdate('overnightStays', [{
+                    date: new Date(),
+                    value: parseInt(e.target.value) || 0
+                  }])}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
                   placeholder="0"
                 />

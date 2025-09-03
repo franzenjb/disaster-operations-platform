@@ -31,6 +31,7 @@ interface OperationStore {
   // Service Lines
   addFeedingData: (data: Partial<FeedingData>) => void;
   updateShelterCount: (count: number) => void;
+  updateServiceLine: (lineType: string, data: any) => void;
   
   // IAP
   updateIAPSection: (sectionId: string, content: any) => void;
@@ -102,24 +103,36 @@ export const useOperationStore = create<OperationStore>()(
           },
           serviceLines: {
             feeding: {
+              breakfastServed: 0,
+              lunchServed: 0,
+              dinnerServed: 0,
+              snacksServed: 0,
+              totalMealsToDate: 0,
+              fixedFeedingSites: 0,
+              mobileFeedingUnits: 0,
+              feedingStaff: 0,
+              feedingVolunteers: 0,
+              bulkDistributionItems: 0,
+              partnerMealsProvided: 0,
               meals: [],
               snacks: [],
-              waterDistributed: [],
-              feedingSites: [],
-              erkDeployed: 0,
-              totalMealsToDate: 0
-            },
+              feedingSites: []
+            } as any,
             sheltering: {
               sheltersOpen: 0,
-              shelterCensus: 0,
+              shelterCapacity: 0,
+              currentPopulation: 0,
+              newRegistrations: 0,
               overnightStays: [],
-              shelterSites: [],
-              totalClientsServed: 0
-            },
-            health: {} as any,
-            distribution: {} as any,
-            recovery: {} as any,
-            logistics: {} as any
+              petsSheltered: 0,
+              totalClientsServed: 0,
+              shelterStaff: 0,
+              shelterVolunteers: 0,
+              hotelsUtilized: 0,
+              hotelRooms: 0,
+              sheltersList: [],
+              shelterSites: []
+            } as any
           },
           iap: {
             id: `iap-${drNumber}-1`,
@@ -273,6 +286,17 @@ export const useOperationStore = create<OperationStore>()(
         if (count > 0) {
           eventBus.emit(EventType.SHELTER_OPENED, { count });
         }
+        get().saveToLocal();
+      },
+      
+      // Update any service line
+      updateServiceLine: (lineType, data) => {
+        set(state => {
+          if (state.currentOperation && state.currentOperation.serviceLines[lineType as keyof typeof state.currentOperation.serviceLines]) {
+            (state.currentOperation.serviceLines as any)[lineType] = data;
+          }
+        });
+        eventBus.emit(EventType.SERVICE_LINE_UPDATED, { lineType, data });
         get().saveToLocal();
       },
       

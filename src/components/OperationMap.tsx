@@ -109,15 +109,15 @@ export function OperationMap() {
             `);
             
             // Add hover effect
-            layer.on('mouseover', function() {
-              (this as any).setStyle({
+            layer.on('mouseover', function(e) {
+              e.target.setStyle({
                 fillOpacity: 0.9,
                 weight: 3
               });
             });
             
-            layer.on('mouseout', function() {
-              (this as any).setStyle({
+            layer.on('mouseout', function(e) {
+              e.target.setStyle({
                 fillOpacity: 0.7,
                 weight: 2
               });

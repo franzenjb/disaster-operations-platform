@@ -40,8 +40,9 @@ export async function getStateCountyBoundaries(stateName: string): Promise<Count
     // In production, this would fetch from US Census Bureau or similar source
     if (stateName === 'Florida') {
       const floridaGeoJSON = await import('../data/florida-counties-geojson');
-      countyCache.set(stateName, floridaGeoJSON.default);
-      return floridaGeoJSON.default;
+      const data = floridaGeoJSON.default as CountyCollection;
+      countyCache.set(stateName, data);
+      return data;
     }
 
     // Placeholder for other states - would fetch from API

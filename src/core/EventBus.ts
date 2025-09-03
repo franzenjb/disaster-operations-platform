@@ -20,6 +20,7 @@ export enum EventType {
   FEEDING_DATA_ENTERED = 'feeding.entered',
   SHELTER_OPENED = 'shelter.opened',
   SHELTER_CLOSED = 'shelter.closed',
+  SERVICE_LINE_UPDATED = 'service.line.updated',
   
   // IAP edits
   IAP_SECTION_EDITED = 'iap.section.edited',
