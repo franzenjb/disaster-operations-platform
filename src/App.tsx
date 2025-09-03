@@ -9,6 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { useOperationStore } from './stores/useOperationStore';
 import { StartOperation } from './components/StartOperation';
 import { OperationDashboard } from './components/OperationDashboard';
+import { SystemStats } from './components/SystemStats';
 import { eventBus, EventType } from './core/EventBus';
 
 export function App() {
@@ -65,7 +66,10 @@ export function App() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {!currentOperation ? (
-          <StartOperation />
+          <>
+            <SystemStats />
+            <StartOperation />
+          </>
         ) : (
           <OperationDashboard />
         )}

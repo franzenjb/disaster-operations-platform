@@ -10,6 +10,7 @@ import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import { useOperationStore } from '../stores/useOperationStore';
 import { eventBus, EventType } from '../core/EventBus';
+import { getFloridaCountyData } from '../data/florida-counties';
 
 // Fix Leaflet icon issue
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -68,15 +69,26 @@ export function OperationMap() {
     
     // Add markers for each county
     selectedCounties.forEach(county => {
-      // In production, we'd have real coordinates from the county data
-      // For demo, using simplified coordinates
-      const lat = 25 + Math.random() * 5; // Florida area
-      const lng = -80 - Math.random() * 5;
+      // Try to get real coordinates from Florida data
+      const floridaData = getFloridaCountyData(county.name);
+      
+      let lat: number, lng: number;
+      if (floridaData) {
+        // Use real Florida coordinates
+        lat = floridaData.lat;
+        lng = floridaData.lng;
+      } else {
+        // Fallback for non-Florida counties
+        lat = 39 + Math.random() * 10; // US center area
+        lng = -95 - Math.random() * 10;
+      }
       
       const marker = L.marker([lat, lng])
         .bindPopup(`
           <div class="font-semibold">${county.name}</div>
-          <div class="text-sm text-gray-600">Click to view details</div>
+          <div class="text-sm text-gray-600">
+            ${floridaData ? `Population: ${floridaData.population?.toLocaleString() || 'N/A'}` : 'Click to view details'}
+          </div>
         `);
       
       markersLayer.current!.addLayer(marker);
