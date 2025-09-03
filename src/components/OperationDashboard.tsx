@@ -8,17 +8,15 @@
 import React, { useState } from 'react';
 import { useOperationStore } from '../stores/useOperationStore';
 import { USCountyMap } from './USCountyMap';
-import { ServiceLineEntry } from './ServiceLineEntry';
 import { UnifiedIAP } from './iap/UnifiedIAP';
 import { EventLog } from './EventLog';
-import { Setup } from './Setup';
 
-type TabType = 'iap' | 'service-lines' | 'events' | 'setup' | 'overview';
+type TabType = 'overview' | 'iap' | 'events';
 
 export function OperationDashboard() {
   const operation = useOperationStore(state => state.currentOperation);
   const selectedCounties = useOperationStore(state => state.selectedCounties);
-  const [activeTab, setActiveTab] = useState<TabType>('iap');
+  const [activeTab, setActiveTab] = useState<TabType>('overview');
   
   if (!operation) return null;
   
@@ -29,11 +27,9 @@ export function OperationDashboard() {
         <div className="max-w-7xl mx-auto">
           <nav className="-mb-px flex space-x-8 px-4 sm:px-6 lg:px-8">
           {[
+            { id: 'overview', label: 'Overview', icon: '📊' },
             { id: 'iap', label: 'Live IAP', icon: '📋' },
-            { id: 'service-lines', label: 'Service Lines', icon: '🛠️' },
-            { id: 'events', label: 'Event Log', icon: '📝' },
-            { id: 'setup', label: 'Setup', icon: '⚙️' },
-            { id: 'overview', label: 'Overview', icon: '📊' }
+            { id: 'events', label: 'Event Log', icon: '📝' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -113,20 +109,20 @@ export function OperationDashboard() {
               </div>
               
               <div className="card">
-                <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
-                <div className="space-y-2">
-                  <button 
-                    onClick={() => setActiveTab('service-lines')}
-                    className="w-full btn-secondary"
-                  >
-                    Enter Service Line Data
-                  </button>
-                  <button 
-                    onClick={() => setActiveTab('iap')}
-                    className="w-full btn-primary"
-                  >
-                    Edit Live IAP
-                  </button>
+                <h3 className="text-lg font-semibold mb-4">Operation Status</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Operational Period</span>
+                    <span className="text-sm font-medium">Active</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-gray-100">
+                    <span className="text-sm text-gray-600">Last Updated</span>
+                    <span className="text-sm font-medium">{new Date().toLocaleTimeString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-gray-600">Total Personnel</span>
+                    <span className="text-sm font-medium">--</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -137,11 +133,7 @@ export function OperationDashboard() {
           <UnifiedIAP operationId={operation.id} />
         )}
         
-        {activeTab === 'service-lines' && <ServiceLineEntry />}
-        
         {activeTab === 'events' && <EventLog />}
-        
-        {activeTab === 'setup' && <Setup />}
         </div>
       </div>
       
