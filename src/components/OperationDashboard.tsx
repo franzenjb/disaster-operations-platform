@@ -7,7 +7,7 @@
 
 import React, { useState } from 'react';
 import { useOperationStore } from '../stores/useOperationStore';
-import { OperationMap } from './OperationMap';
+import { USCountyMap } from './USCountyMap';
 import { ServiceLineEntry } from './ServiceLineEntry';
 import { UnifiedIAP } from './iap/UnifiedIAP';
 import { EventLog } from './EventLog';
@@ -79,7 +79,7 @@ export function OperationDashboard() {
             {/* Map */}
             <div className="card">
               <h2 className="text-lg font-semibold mb-4">Operation Area</h2>
-              <OperationMap />
+              <USCountyMap />
             </div>
             
             {/* Statistics */}
