@@ -11,13 +11,14 @@ import { USCountyMap } from './USCountyMap';
 import { ServiceLineEntry } from './ServiceLineEntry';
 import { UnifiedIAP } from './iap/UnifiedIAP';
 import { EventLog } from './EventLog';
+import { Setup } from './Setup';
 
-type TabType = 'overview' | 'service-lines' | 'iap' | 'events';
+type TabType = 'iap' | 'service-lines' | 'events' | 'setup' | 'overview';
 
 export function OperationDashboard() {
   const operation = useOperationStore(state => state.currentOperation);
   const selectedCounties = useOperationStore(state => state.selectedCounties);
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
+  const [activeTab, setActiveTab] = useState<TabType>('iap');
   
   if (!operation) return null;
   
@@ -49,10 +50,11 @@ export function OperationDashboard() {
       <div className="border-b border-gray-200">
         <nav className="-mb-px flex space-x-8">
           {[
-            { id: 'overview', label: 'Overview', icon: '📊' },
-            { id: 'service-lines', label: 'Service Lines', icon: '🛠️' },
             { id: 'iap', label: 'Live IAP', icon: '📋' },
-            { id: 'events', label: 'Event Log', icon: '📝' }
+            { id: 'service-lines', label: 'Service Lines', icon: '🛠️' },
+            { id: 'events', label: 'Event Log', icon: '📝' },
+            { id: 'setup', label: 'Setup', icon: '⚙️' },
+            { id: 'overview', label: 'Overview', icon: '📊' }
           ].map(tab => (
             <button
               key={tab.id}
@@ -127,13 +129,15 @@ export function OperationDashboard() {
           </div>
         )}
         
-        {activeTab === 'service-lines' && <ServiceLineEntry />}
-        
         {activeTab === 'iap' && (
           <UnifiedIAP operationId={operation.id} />
         )}
         
+        {activeTab === 'service-lines' && <ServiceLineEntry />}
+        
         {activeTab === 'events' && <EventLog />}
+        
+        {activeTab === 'setup' && <Setup />}
       </div>
       
       {/* Real-time Indicator */}
