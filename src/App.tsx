@@ -11,12 +11,16 @@ import { StartOperation } from './components/StartOperation';
 import { OperationDashboard } from './components/OperationDashboard';
 import { SystemStats } from './components/SystemStats';
 import { eventBus, EventType } from './core/EventBus';
+import { useSupabaseSync } from './hooks/useSupabaseSync';
 
 export function App() {
   const currentOperation = useOperationStore(state => state.currentOperation);
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline'>(
     navigator.onLine ? 'online' : 'offline'
   );
+  
+  // Initialize Supabase sync
+  const { isConfigured, lastSync, isSyncing, pendingUpdates } = useSupabaseSync();
   
   // Listen for network changes
   useEffect(() => {
@@ -49,6 +53,20 @@ export function App() {
             </div>
             
             <div className="flex items-center gap-4">
+              {/* Database Sync Status */}
+              {isConfigured && (
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    isSyncing ? 'bg-yellow-500 animate-pulse' : 
+                    pendingUpdates > 0 ? 'bg-orange-500' : 'bg-green-500'
+                  }`} />
+                  <span className="text-sm text-gray-600">
+                    {isSyncing ? 'Syncing...' : 
+                     pendingUpdates > 0 ? `${pendingUpdates} pending` : 'Synced'}
+                  </span>
+                </div>
+              )}
+              
               {/* Network Status Indicator */}
               <div className="flex items-center gap-2">
                 <div className={`w-2 h-2 rounded-full ${
