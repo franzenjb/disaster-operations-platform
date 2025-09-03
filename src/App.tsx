@@ -37,14 +37,9 @@ export function App() {
     };
   }, []);
 
-  // Handle view changes
-  if (currentView === 'ics215') {
-    return <ICS215Demo />;
-  }
-  
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+      {/* Header - Always visible */}
       <header className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -114,13 +109,17 @@ export function App() {
       
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {!currentOperation ? (
-          <>
-            <SystemStats />
-            <StartOperation />
-          </>
+        {currentView === 'ics215' ? (
+          <ICS215Demo />
         ) : (
-          <OperationDashboard />
+          !currentOperation ? (
+            <>
+              <SystemStats />
+              <StartOperation />
+            </>
+          ) : (
+            <OperationDashboard />
+          )
         )}
       </main>
     </div>
