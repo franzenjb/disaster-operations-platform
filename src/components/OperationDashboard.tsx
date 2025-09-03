@@ -23,32 +23,11 @@ export function OperationDashboard() {
   if (!operation) return null;
   
   return (
-    <div className="space-y-6">
-      {/* Operation Header */}
-      <div className="card">
-        <div className="flex justify-between items-start">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {operation.operationName}
-            </h1>
-            <p className="text-gray-600">{operation.id}</p>
-            <p className="text-sm text-gray-500">
-              Created: {new Date(operation.metadata.created).toLocaleDateString()}
-            </p>
-          </div>
-          
-          <div className="text-right">
-            <div className="text-3xl font-bold text-red-cross-red">
-              {selectedCounties.length}
-            </div>
-            <div className="text-sm text-gray-600">Counties Affected</div>
-          </div>
-        </div>
-      </div>
-      
-      {/* Tab Navigation - Sticky */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
-        <nav className="-mb-px flex space-x-8 px-4 sm:px-6 lg:px-8">
+    <>
+      {/* Tab Navigation - Fixed at top below main header */}
+      <div className="fixed top-16 left-0 right-0 z-40 bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto">
+          <nav className="-mb-px flex space-x-8 px-4 sm:px-6 lg:px-8">
           {[
             { id: 'iap', label: 'Live IAP', icon: '📋' },
             { id: 'service-lines', label: 'Service Lines', icon: '🛠️' },
@@ -71,11 +50,36 @@ export function OperationDashboard() {
               {tab.label}
             </button>
           ))}
-        </nav>
+          </nav>
+        </div>
       </div>
-      
-      {/* Tab Content */}
-      <div className="min-h-[600px]">
+
+      {/* Main Content Container - with padding for fixed nav */}
+      <div className="pt-16 space-y-6">
+        {/* Operation Header */}
+        <div className="card">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {operation.operationName}
+              </h1>
+              <p className="text-gray-600">{operation.id}</p>
+              <p className="text-sm text-gray-500">
+                Created: {new Date(operation.metadata.created).toLocaleDateString()}
+              </p>
+            </div>
+            
+            <div className="text-right">
+              <div className="text-3xl font-bold text-red-cross-red">
+                {selectedCounties.length}
+              </div>
+              <div className="text-sm text-gray-600">Counties Affected</div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Tab Content */}
+        <div className="min-h-[600px]">
         {activeTab === 'overview' && (
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Map */}
@@ -138,6 +142,7 @@ export function OperationDashboard() {
         {activeTab === 'events' && <EventLog />}
         
         {activeTab === 'setup' && <Setup />}
+        </div>
       </div>
       
       {/* Real-time Indicator */}
@@ -149,7 +154,7 @@ export function OperationDashboard() {
           </span>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
