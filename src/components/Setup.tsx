@@ -1,430 +1,444 @@
 /**
  * Setup Component
- * Initial configuration and "Start Here" section for disaster operations
+ * Initial configuration required to start disaster operations
  */
 
 import React, { useState, useEffect } from 'react';
 import { useOperationStore } from '../stores/useOperationStore';
 import { eventBus, EventType } from '../core/EventBus';
-import { CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon } from '@heroicons/react/24/outline';
+import { REGIONS } from '../data/regions';
+import { USCountyMap } from './USCountyMap';
 
-interface SetupStep {
-  id: string;
-  title: string;
-  description: string;
-  completed: boolean;
-  required: boolean;
+interface SetupData {
+  droStartDate: string;
+  droNumber: string;
+  userName: string;
+  phoneNumber: string;
+  emailAddress: string;
+  selectedRegion: string;
+  selectedCounties: string[];
+  assignedChapters: string[];
 }
+
+// Chapter assignments by county (simplified - in production this would be a comprehensive mapping)
+const COUNTY_TO_CHAPTER: Record<string, string> = {
+  // Florida examples
+  'Miami-Dade': 'Greater Miami & The Keys Chapter',
+  'Broward': 'Greater Miami & The Keys Chapter',
+  'Palm Beach': 'Palm Beach County Chapter',
+  'Hillsborough': 'Tampa Bay Chapter',
+  'Pinellas': 'Tampa Bay Chapter',
+  'Orange': 'Central Florida Chapter',
+  'Duval': 'Northeast Florida Chapter',
+  'Leon': 'Capital Area Chapter',
+  'Escambia': 'Northwest Florida Chapter',
+  // Add more county-to-chapter mappings as needed
+};
 
 export function Setup() {
   const operation = useOperationStore(state => state.currentOperation);
   const updateOperation = useOperationStore(state => state.updateOperation);
+  const selectedCounties = useOperationStore(state => state.selectedCounties);
+  const toggleCounty = useOperationStore(state => state.toggleCounty);
   
-  const [disasterStartDate, setDisasterStartDate] = useState<string>(
-    operation?.startDate || new Date().toISOString().split('T')[0]
-  );
+  const [setupData, setSetupData] = useState<SetupData>({
+    droStartDate: operation?.metadata?.droStartDate || '',
+    droNumber: operation?.id || '',
+    userName: operation?.metadata?.primaryContact?.name || '',
+    phoneNumber: operation?.metadata?.primaryContact?.phone || '',
+    emailAddress: operation?.metadata?.primaryContact?.email || '',
+    selectedRegion: operation?.region || '',
+    selectedCounties: selectedCounties,
+    assignedChapters: []
+  });
   
-  const [setupSteps, setSetupSteps] = useState<SetupStep[]>([
-    {
-      id: 'start-date',
-      title: 'Set Disaster Start Date',
-      description: 'Define when the disaster event began',
-      completed: !!operation?.startDate,
-      required: true
-    },
-    {
-      id: 'command-structure',
-      title: 'Establish Command Structure',
-      description: 'Identify DRO Director and key leadership',
-      completed: false,
-      required: true
-    },
-    {
-      id: 'operational-period',
-      title: 'Define Operational Period',
-      description: 'Set the current operational period for IAP',
-      completed: !!operation?.iap?.meta?.operationalPeriod?.start,
-      required: true
-    },
-    {
-      id: 'affected-counties',
-      title: 'Select Affected Counties',
-      description: 'Mark all counties in the disaster area',
-      completed: operation?.geography?.counties?.length > 0,
-      required: true
-    },
-    {
-      id: 'initial-assessment',
-      title: 'Complete Initial Assessment',
-      description: 'Document initial disaster impacts and needs',
-      completed: false,
-      required: false
-    },
-    {
-      id: 'resource-request',
-      title: 'Submit Resource Requests',
-      description: 'Request ERKs, shelters, and personnel',
-      completed: false,
-      required: false
-    },
-    {
-      id: 'partner-coordination',
-      title: 'Coordinate with Partners',
-      description: 'Establish contact with FEMA, state, and local EOCs',
-      completed: false,
-      required: false
-    },
-    {
-      id: 'reporting-schedule',
-      title: 'Set Reporting Schedule',
-      description: 'Define daily briefing and reporting times',
-      completed: false,
-      required: false
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [isComplete, setIsComplete] = useState(false);
+  
+  // Auto-assign chapters based on selected counties
+  useEffect(() => {
+    const chapters = new Set<string>();
+    selectedCounties.forEach(county => {
+      const chapter = COUNTY_TO_CHAPTER[county];
+      if (chapter) {
+        chapters.add(chapter);
+      }
+    });
+    
+    setSetupData(prev => ({
+      ...prev,
+      selectedCounties: selectedCounties,
+      assignedChapters: Array.from(chapters).sort()
+    }));
+  }, [selectedCounties]);
+  
+  // Check if all required fields are filled
+  useEffect(() => {
+    const required = [
+      setupData.droStartDate,
+      setupData.droNumber,
+      setupData.userName,
+      setupData.phoneNumber,
+      setupData.emailAddress,
+      setupData.selectedRegion
+    ];
+    
+    const allFieldsFilled = required.every(field => field && field.length > 0);
+    const hasCounties = selectedCounties.length > 0;
+    
+    setIsComplete(allFieldsFilled && hasCounties);
+  }, [setupData, selectedCounties]);
+  
+  const handleFieldChange = (field: keyof SetupData, value: string | string[]) => {
+    setSetupData(prev => ({ ...prev, [field]: value }));
+    
+    // Clear validation error for this field
+    if (validationErrors[field]) {
+      setValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated[field];
+        return updated;
+      });
     }
-  ]);
-  
-  const [commandStructure, setCommandStructure] = useState({
-    droDirector: operation?.command?.droDirector?.name || '',
-    deputyDirector: operation?.command?.deputyDirector?.name || '',
-    chiefOfStaff: operation?.command?.chiefOfStaff?.name || '',
-    adOperations: operation?.command?.sectionChiefs?.operations?.name || '',
-    adPlanning: operation?.command?.sectionChiefs?.planning?.name || '',
-    adLogistics: operation?.command?.sectionChiefs?.logistics?.name || '',
-    adFinance: operation?.command?.sectionChiefs?.finance?.name || '',
-  });
-  
-  const [operationalPeriod, setOperationalPeriod] = useState({
-    start: operation?.iap?.meta?.operationalPeriod?.start || new Date().toISOString(),
-    end: operation?.iap?.meta?.operationalPeriod?.end || 
-      new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-  });
-  
-  const handleStartDateChange = (date: string) => {
-    setDisasterStartDate(date);
+    
+    // Update operation metadata
     if (operation) {
-      updateOperation({ ...operation, startDate: date });
+      const metadata = {
+        ...operation.metadata,
+        droStartDate: field === 'droStartDate' ? value : setupData.droStartDate,
+        primaryContact: {
+          name: field === 'userName' ? value : setupData.userName,
+          phone: field === 'phoneNumber' ? value : setupData.phoneNumber,
+          email: field === 'emailAddress' ? value : setupData.emailAddress,
+        }
+      };
+      
+      const updates: any = { metadata };
+      
+      if (field === 'droNumber') {
+        updates.id = value as string;
+      }
+      
+      if (field === 'selectedRegion') {
+        updates.region = value as string;
+      }
+      
+      updateOperation({ ...operation, ...updates });
+      
+      // Emit event for tracking
       eventBus.emit(EventType.DATA_ENTRY, {
         operationId: operation.id,
-        field: 'startDate',
-        value: date,
+        field,
+        value,
         timestamp: new Date()
       });
-      
-      // Update step completion
-      setSetupSteps(prev => prev.map(step => 
-        step.id === 'start-date' ? { ...step, completed: true } : step
-      ));
     }
   };
   
-  const handleCommandStructureUpdate = (field: string, value: string) => {
-    const updated = { ...commandStructure, [field]: value };
-    setCommandStructure(updated);
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+  
+  const validatePhone = (phone: string): boolean => {
+    const phoneRegex = /^\d{3}-\d{3}-\d{4}$/;
+    return phoneRegex.test(phone);
+  };
+  
+  const handleEmailBlur = () => {
+    if (setupData.emailAddress && !validateEmail(setupData.emailAddress)) {
+      setValidationErrors(prev => ({
+        ...prev,
+        emailAddress: 'Please enter a valid email address'
+      }));
+    }
+  };
+  
+  const handlePhoneChange = (value: string) => {
+    // Auto-format phone number as user types
+    const cleaned = value.replace(/\D/g, '');
+    let formatted = cleaned;
     
-    if (operation) {
-      const commandUpdate = {
-        ...operation.command,
-        droDirector: { ...operation.command.droDirector, name: updated.droDirector },
-        deputyDirector: { ...operation.command.deputyDirector, name: updated.deputyDirector },
-        chiefOfStaff: { ...operation.command.chiefOfStaff, name: updated.chiefOfStaff },
-        sectionChiefs: {
-          ...operation.command.sectionChiefs,
-          operations: { name: updated.adOperations },
-          planning: { name: updated.adPlanning },
-          logistics: { name: updated.adLogistics },
-          finance: { name: updated.adFinance },
-        }
-      };
-      
-      updateOperation({ ...operation, command: commandUpdate });
-      
-      // Check if command structure is complete
-      const isComplete = updated.droDirector && updated.deputyDirector;
-      setSetupSteps(prev => prev.map(step => 
-        step.id === 'command-structure' ? { ...step, completed: isComplete } : step
-      ));
+    if (cleaned.length >= 6) {
+      formatted = `${cleaned.slice(0, 3)}-${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
+    } else if (cleaned.length >= 3) {
+      formatted = `${cleaned.slice(0, 3)}-${cleaned.slice(3)}`;
     }
-  };
-  
-  const handleOperationalPeriodUpdate = (field: 'start' | 'end', value: string) => {
-    const updated = { ...operationalPeriod, [field]: value };
-    setOperationalPeriod(updated);
     
-    if (operation && operation.iap) {
-      const iapUpdate = {
-        ...operation.iap,
-        meta: {
-          ...operation.iap.meta,
-          operationalPeriod: updated
-        }
-      };
-      
-      updateOperation({ ...operation, iap: iapUpdate });
-      
-      setSetupSteps(prev => prev.map(step => 
-        step.id === 'operational-period' ? { ...step, completed: true } : step
-      ));
-    }
+    handleFieldChange('phoneNumber', formatted);
   };
-  
-  const completedSteps = setupSteps.filter(s => s.completed).length;
-  const requiredSteps = setupSteps.filter(s => s.required).length;
-  const requiredCompleted = setupSteps.filter(s => s.required && s.completed).length;
-  const progressPercent = (completedSteps / setupSteps.length) * 100;
   
   return (
     <div className="space-y-6">
-      {/* Progress Overview */}
-      <div className="card">
-        <h2 className="text-xl font-bold mb-4">Setup Progress</h2>
-        <div className="space-y-4">
+      {/* Setup Progress Header */}
+      <div className="card bg-gradient-to-r from-red-50 to-red-100 border-red-200">
+        <div className="flex items-center justify-between">
           <div>
-            <div className="flex justify-between mb-2">
-              <span className="text-sm text-gray-600">Overall Progress</span>
-              <span className="text-sm font-medium">
-                {completedSteps} of {setupSteps.length} completed
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-red-cross-red h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
+            <h2 className="text-xl font-bold text-red-900">Initial Setup</h2>
+            <p className="text-sm text-red-700 mt-1">
+              Complete all required fields to begin disaster operations
+            </p>
           </div>
-          
-          <div className="flex items-center gap-2 text-sm">
-            <span className={`font-medium ${requiredCompleted === requiredSteps ? 'text-green-600' : 'text-orange-600'}`}>
-              {requiredCompleted === requiredSteps ? '✓' : '!'} Required Steps: {requiredCompleted}/{requiredSteps}
-            </span>
-          </div>
+          {isComplete && (
+            <div className="flex items-center gap-2 text-green-600">
+              <CheckCircleIcon className="w-6 h-6" />
+              <span className="font-medium">Setup Complete</span>
+            </div>
+          )}
         </div>
       </div>
       
-      {/* Step 1: Disaster Start Date */}
+      {/* Section 1: DRO Information */}
       <div className="card">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold">Step 1: Disaster Start Date</h3>
-            <p className="text-sm text-gray-600 mt-1">
-              This date marks the beginning of the disaster event
-            </p>
-          </div>
-          {setupSteps[0].completed && (
-            <CheckCircleIcon className="w-6 h-6 text-green-600" />
-          )}
-        </div>
-        
-        <div className="space-y-4">
+        <h3 className="text-lg font-semibold mb-4">1. DRO Information</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Disaster Start Date *
+              DRO Start Date <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
-              value={disasterStartDate}
-              onChange={(e) => handleStartDateChange(e.target.value)}
+              value={setupData.droStartDate}
+              onChange={(e) => handleFieldChange('droStartDate', e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+              required
             />
-          </div>
-          
-          {disasterStartDate && (
-            <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
-              <p className="text-sm text-blue-800">
-                Days since disaster: <strong>{Math.floor((Date.now() - new Date(disasterStartDate).getTime()) / (1000 * 60 * 60 * 24))}</strong>
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-      
-      {/* Step 2: Command Structure */}
-      <div className="card">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold">Step 2: Command Structure</h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Identify key leadership positions
+            <p className="text-xs text-gray-500 mt-1">
+              Date when the DRO (Disaster Relief Operation) began
             </p>
           </div>
-          {setupSteps[1].completed && (
-            <CheckCircleIcon className="w-6 h-6 text-green-600" />
-          )}
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              DRO Director *
-            </label>
-            <input
-              type="text"
-              value={commandStructure.droDirector}
-              onChange={(e) => handleCommandStructureUpdate('droDirector', e.target.value)}
-              placeholder="Enter name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
-            />
-          </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Deputy Director *
+              DRO Number <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
-              value={commandStructure.deputyDirector}
-              onChange={(e) => handleCommandStructureUpdate('deputyDirector', e.target.value)}
-              placeholder="Enter name"
+              value={setupData.droNumber}
+              onChange={(e) => handleFieldChange('droNumber', e.target.value)}
+              placeholder="DR-2025-FL-001"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+              required
             />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Chief of Staff
-            </label>
-            <input
-              type="text"
-              value={commandStructure.chiefOfStaff}
-              onChange={(e) => handleCommandStructureUpdate('chiefOfStaff', e.target.value)}
-              placeholder="Enter name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              AD Operations
-            </label>
-            <input
-              type="text"
-              value={commandStructure.adOperations}
-              onChange={(e) => handleCommandStructureUpdate('adOperations', e.target.value)}
-              placeholder="Enter name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              AD Planning
-            </label>
-            <input
-              type="text"
-              value={commandStructure.adPlanning}
-              onChange={(e) => handleCommandStructureUpdate('adPlanning', e.target.value)}
-              placeholder="Enter name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              AD Logistics
-            </label>
-            <input
-              type="text"
-              value={commandStructure.adLogistics}
-              onChange={(e) => handleCommandStructureUpdate('adLogistics', e.target.value)}
-              placeholder="Enter name"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
-            />
-          </div>
-        </div>
-      </div>
-      
-      {/* Step 3: Operational Period */}
-      <div className="card">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-semibold">Step 3: Operational Period</h3>
-            <p className="text-sm text-gray-600 mt-1">
-              Define the current IAP operational period
+            <p className="text-xs text-gray-500 mt-1">
+              Format: DR-YYYY-ST-###
             </p>
           </div>
-          {setupSteps[2].completed && (
-            <CheckCircleIcon className="w-6 h-6 text-green-600" />
-          )}
         </div>
-        
+      </div>
+      
+      {/* Section 2: Your Contact Information */}
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4">2. Your Contact Information</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
+          <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Period Start *
+              Your Name <span className="text-red-500">*</span>
             </label>
             <input
-              type="datetime-local"
-              value={operationalPeriod.start.slice(0, 16)}
-              onChange={(e) => handleOperationalPeriodUpdate('start', e.target.value)}
+              type="text"
+              value={setupData.userName}
+              onChange={(e) => handleFieldChange('userName', e.target.value)}
+              placeholder="First Last"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+              required
             />
           </div>
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Period End *
+              Telephone Number <span className="text-red-500">*</span>
             </label>
             <input
-              type="datetime-local"
-              value={operationalPeriod.end.slice(0, 16)}
-              onChange={(e) => handleOperationalPeriodUpdate('end', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
-            />
-          </div>
-        </div>
-      </div>
-      
-      {/* Setup Checklist */}
-      <div className="card">
-        <h3 className="text-lg font-semibold mb-4">Setup Checklist</h3>
-        <div className="space-y-2">
-          {setupSteps.map(step => (
-            <div 
-              key={step.id}
-              className={`flex items-center justify-between p-3 rounded-lg ${
-                step.completed ? 'bg-green-50' : 'bg-gray-50'
+              type="tel"
+              value={setupData.phoneNumber}
+              onChange={(e) => handlePhoneChange(e.target.value)}
+              placeholder="555-555-5555"
+              className={`w-full px-3 py-2 border rounded-md focus:ring-red-500 focus:border-red-500 ${
+                validationErrors.phoneNumber ? 'border-red-500' : 'border-gray-300'
               }`}
-            >
-              <div className="flex items-center gap-3">
-                {step.completed ? (
-                  <CheckCircleIcon className="w-5 h-5 text-green-600" />
-                ) : (
-                  <div className={`w-5 h-5 rounded-full border-2 ${
-                    step.required ? 'border-red-500' : 'border-gray-300'
-                  }`} />
-                )}
-                <div>
-                  <div className="font-medium text-sm">
-                    {step.title}
-                    {step.required && (
-                      <span className="ml-2 text-xs text-red-600">Required</span>
-                    )}
+              required
+            />
+            {validationErrors.phoneNumber && (
+              <p className="text-xs text-red-500 mt-1">{validationErrors.phoneNumber}</p>
+            )}
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              value={setupData.emailAddress}
+              onChange={(e) => handleFieldChange('emailAddress', e.target.value)}
+              onBlur={handleEmailBlur}
+              placeholder="name@redcross.org"
+              className={`w-full px-3 py-2 border rounded-md focus:ring-red-500 focus:border-red-500 ${
+                validationErrors.emailAddress ? 'border-red-500' : 'border-gray-300'
+              }`}
+              required
+            />
+            {validationErrors.emailAddress && (
+              <p className="text-xs text-red-500 mt-1">{validationErrors.emailAddress}</p>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* Section 3: Region Selection */}
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4">3. Select Region</h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Red Cross Region <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={setupData.selectedRegion}
+            onChange={(e) => handleFieldChange('selectedRegion', e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-red-500 focus:border-red-500"
+            required
+          >
+            <option value="">Select a region...</option>
+            {REGIONS.map(region => (
+              <option key={region.id} value={region.name}>{region.name}</option>
+            ))}
+          </select>
+        </div>
+      </div>
+      
+      {/* Section 4: County Selection */}
+      <div className="card">
+        <h3 className="text-lg font-semibold mb-4">4. Select Affected Counties</h3>
+        <p className="text-sm text-gray-600 mb-4">
+          Click on the map to select affected counties. Chapters will be automatically assigned based on your selections.
+        </p>
+        
+        <div className="grid lg:grid-cols-2 gap-6">
+          <div>
+            <h4 className="font-medium mb-2">County Map</h4>
+            <div className="border rounded-lg overflow-hidden" style={{ height: '400px' }}>
+              <USCountyMap />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Click counties to select/deselect them
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <h4 className="font-medium mb-2">
+                Selected Counties ({selectedCounties.length})
+              </h4>
+              <div className="border rounded-lg p-3 max-h-40 overflow-y-auto bg-gray-50">
+                {selectedCounties.length > 0 ? (
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCounties.map(county => (
+                      <span 
+                        key={county}
+                        className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"
+                      >
+                        {county}
+                        <button
+                          onClick={() => toggleCounty(county)}
+                          className="ml-1 hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
                   </div>
-                  <div className="text-xs text-gray-600">{step.description}</div>
-                </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No counties selected</p>
+                )}
               </div>
             </div>
-          ))}
+            
+            <div>
+              <h4 className="font-medium mb-2">
+                Auto-Assigned Chapters ({setupData.assignedChapters.length})
+              </h4>
+              <div className="border rounded-lg p-3 max-h-40 overflow-y-auto bg-blue-50">
+                {setupData.assignedChapters.length > 0 ? (
+                  <ul className="space-y-1">
+                    {setupData.assignedChapters.map(chapter => (
+                      <li key={chapter} className="text-sm text-blue-900">
+                        • {chapter}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-gray-500">
+                    Chapters will appear here based on county selection
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       
-      {/* Quick Reference */}
-      <div className="card bg-yellow-50 border-yellow-200">
-        <h3 className="text-lg font-semibold mb-3">Quick Reference</h3>
-        <div className="space-y-2 text-sm">
-          <div className="flex gap-2">
-            <strong>DR Number:</strong> {operation?.id}
+      {/* Setup Summary */}
+      <div className={`card ${isComplete ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+        <h3 className="text-lg font-semibold mb-3">Setup Summary</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <div className="flex justify-between py-1">
+              <span className="text-gray-600">DRO Start Date:</span>
+              <span className="font-medium">{setupData.droStartDate || '—'}</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-gray-600">DRO Number:</span>
+              <span className="font-medium">{setupData.droNumber || '—'}</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-gray-600">Your Name:</span>
+              <span className="font-medium">{setupData.userName || '—'}</span>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <strong>Operation Name:</strong> {operation?.operationName}
-          </div>
-          <div className="flex gap-2">
-            <strong>Region:</strong> {operation?.region}
-          </div>
-          <div className="flex gap-2">
-            <strong>Type:</strong> {operation?.type}
+          <div>
+            <div className="flex justify-between py-1">
+              <span className="text-gray-600">Phone:</span>
+              <span className="font-medium">{setupData.phoneNumber || '—'}</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-gray-600">Email:</span>
+              <span className="font-medium">{setupData.emailAddress || '—'}</span>
+            </div>
+            <div className="flex justify-between py-1">
+              <span className="text-gray-600">Region:</span>
+              <span className="font-medium">{setupData.selectedRegion || '—'}</span>
+            </div>
           </div>
         </div>
+        
+        <div className="mt-4 pt-4 border-t">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Counties Selected:</span>
+            <span className="font-medium">{selectedCounties.length}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Chapters Assigned:</span>
+            <span className="font-medium">{setupData.assignedChapters.length}</span>
+          </div>
+        </div>
+        
+        {!isComplete && (
+          <div className="mt-4 p-3 bg-white rounded-md border border-yellow-300">
+            <p className="text-sm text-yellow-800">
+              ⚠️ Please complete all required fields marked with <span className="text-red-500">*</span> and select at least one county to proceed.
+            </p>
+          </div>
+        )}
+        
+        {isComplete && (
+          <div className="mt-4 p-3 bg-white rounded-md border border-green-300">
+            <p className="text-sm text-green-800">
+              ✅ Setup is complete! You can now proceed with disaster operations.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
