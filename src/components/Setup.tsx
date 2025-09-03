@@ -336,10 +336,10 @@ export function Setup() {
                   <div className="flex flex-wrap gap-2">
                     {selectedCounties.map(county => (
                       <span 
-                        key={county}
+                        key={county.id || county.name}
                         className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800"
                       >
-                        {county}
+                        {county.name}
                         <button
                           onClick={() => toggleCounty(county)}
                           className="ml-1 hover:text-red-600"
