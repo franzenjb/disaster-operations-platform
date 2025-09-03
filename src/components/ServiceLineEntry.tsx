@@ -7,6 +7,10 @@ import React from 'react';
 import { useOperationStore } from '../stores/useOperationStore';
 import { FeedingServiceLine } from './servicelines/FeedingServiceLine';
 import { ShelteringServiceLine } from './servicelines/ShelteringServiceLine';
+import { MassCareServiceLine } from './servicelines/MassCareServiceLine';
+import { HealthServicesLine } from './servicelines/HealthServicesLine';
+import { RecoveryServiceLine } from './servicelines/RecoveryServiceLine';
+import { LogisticsServiceLine } from './servicelines/LogisticsServiceLine';
 
 export function ServiceLineEntry() {
   const operation = useOperationStore(state => state.currentOperation);
@@ -16,11 +20,16 @@ export function ServiceLineEntry() {
   }
   
   // Calculate summary statistics
-  const totalMeals = operation.serviceLines.feeding.totalMealsToDate || 0;
-  const sheltersOpen = operation.serviceLines.sheltering.sheltersOpen || 0;
-  const clientsSheltered = operation.serviceLines.sheltering.totalClientsServed || 0;
-  const totalStaff = (operation.serviceLines.feeding.feedingStaff || 0) + 
-                    (operation.serviceLines.sheltering.shelterStaff || 0);
+  const totalMeals = operation.serviceLines.feeding?.totalMealsToDate || 0;
+  const sheltersOpen = operation.serviceLines.sheltering?.sheltersOpen || 0;
+  const clientsSheltered = operation.serviceLines.sheltering?.totalClientsServed || 0;
+  const totalStaff = (operation.serviceLines.logistics?.totalStaff || 0);
+  const totalVolunteers = (operation.serviceLines.logistics?.totalVolunteers || 0);
+  const healthContacts = (operation.serviceLines.health?.firstAidContacts || 0) +
+                         (operation.serviceLines.health?.nursingContacts || 0) +
+                         (operation.serviceLines.health?.mentalHealthContacts || 0);
+  const activeCases = (operation.serviceLines.recovery?.casesOpened || 0) - 
+                     (operation.serviceLines.recovery?.casesClosed || 0);
   
   return (
     <div className="space-y-6">
@@ -52,8 +61,24 @@ export function ServiceLineEntry() {
             <div className="text-sm opacity-90">Clients Sheltered (Line 44)</div>
           </div>
           <div>
-            <div className="text-3xl font-bold">{totalStaff}</div>
-            <div className="text-sm opacity-90">Total Staff</div>
+            <div className="text-3xl font-bold">{(totalStaff + totalVolunteers).toLocaleString()}</div>
+            <div className="text-sm opacity-90">Total Personnel</div>
+          </div>
+          <div>
+            <div className="text-3xl font-bold">{healthContacts.toLocaleString()}</div>
+            <div className="text-sm opacity-90">Health Contacts</div>
+          </div>
+          <div>
+            <div className="text-3xl font-bold">{activeCases}</div>
+            <div className="text-sm opacity-90">Active Cases</div>
+          </div>
+          <div>
+            <div className="text-3xl font-bold">{operation.serviceLines.logistics?.ervCount || 0}</div>
+            <div className="text-sm opacity-90">ERVs Deployed</div>
+          </div>
+          <div>
+            <div className="text-3xl font-bold">{operation.serviceLines.distribution?.distributionSites || 0}</div>
+            <div className="text-sm opacity-90">Distribution Sites</div>
           </div>
         </div>
       </div>
@@ -62,34 +87,17 @@ export function ServiceLineEntry() {
       <div className="space-y-4">
         <FeedingServiceLine />
         <ShelteringServiceLine />
+        <MassCareServiceLine />
+        <RecoveryServiceLine />
+        <HealthServicesLine />
+        <LogisticsServiceLine />
         
-        {/* Placeholder for additional service lines */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            📦 Mass Care & Distribution (Lines 16-25)
-          </h3>
-          <p className="text-sm text-gray-500">Coming soon...</p>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            🏥 Health Services (Lines 49-56)
-          </h3>
-          <p className="text-sm text-gray-500">Coming soon...</p>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            👥 Staffing & Volunteers (Lines 57-65)
-          </h3>
-          <p className="text-sm text-gray-500">Coming soon...</p>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        {/* Government Liaison - Lines 26-30 - Coming Soon */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 opacity-60">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             🏛️ Government Liaison (Lines 26-30)
           </h3>
-          <p className="text-sm text-gray-500">Coming soon...</p>
+          <p className="text-sm text-gray-500">EOC Status, FEMA Coordination - Coming soon...</p>
         </div>
       </div>
       
