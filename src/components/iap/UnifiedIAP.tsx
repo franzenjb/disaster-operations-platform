@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { IAPFull } from './IAPFull';
+import { IAPEnhanced } from './IAPEnhanced';
 
 export function UnifiedIAP({ operationId }: { operationId: string }) {
-  return <IAPFull />;
+  // Use the enhanced IAP with accordion layout and photo upload features
+  return <IAPEnhanced />;
 }
