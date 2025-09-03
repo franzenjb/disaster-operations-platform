@@ -29,7 +29,7 @@ export function StartOperation() {
   // Load counties when region changes
   useEffect(() => {
     if (formData.selectedRegion) {
-      const region = REGIONS.find(r => r.id === formData.selectedRegion);
+      const region = REGIONS.find(r => r.name === formData.selectedRegion);
       if (region) {
         setAvailableCounties(region.counties);
         selectRegion(formData.selectedRegion);
@@ -57,15 +57,7 @@ export function StartOperation() {
   };
   
   const handleCountyToggle = (county: string) => {
-    toggleCounty({
-      id: county,
-      name: county,
-      state: formData.selectedRegion.split(' ')[0], // Simplified for demo
-      fipsCode: '',
-      chapter: '',
-      population: 0,
-      boundary: { type: 'Feature', properties: {}, geometry: { type: 'Polygon', coordinates: [] } }
-    });
+    toggleCounty(county);
   };
   
   return (
@@ -139,7 +131,7 @@ export function StartOperation() {
               >
                 <option value="">Select Region</option>
                 {REGIONS.map(region => (
-                  <option key={region.id} value={region.id}>
+                  <option key={region.id} value={region.name}>
                     {region.name}
                   </option>
                 ))}
@@ -160,7 +152,7 @@ export function StartOperation() {
               <div className="border border-gray-200 rounded-lg p-4 max-h-64 overflow-y-auto">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {availableCounties.map(county => {
-                    const isSelected = selectedCounties.some(c => c.id === county);
+                    const isSelected = selectedCounties.includes(county);
                     return (
                       <label
                         key={county}

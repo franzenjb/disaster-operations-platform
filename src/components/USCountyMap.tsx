@@ -82,8 +82,10 @@ export function USCountyMap() {
     // Create set of selected county names for fast lookup
     const selectedNames = new Set(
       selectedCounties.map(c => {
+        // Handle both string and object formats
+        const name = typeof c === 'string' ? c : c.name;
         // Clean county name - remove state suffix and "County"
-        return c.name
+        return name
           .replace(/, [A-Z]{2}$/, '')  // Remove ", FL" etc
           .replace(' County', '')
           .toLowerCase()
