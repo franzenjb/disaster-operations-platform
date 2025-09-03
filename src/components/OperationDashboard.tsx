@@ -46,9 +46,9 @@ export function OperationDashboard() {
         </div>
       </div>
       
-      {/* Tab Navigation - Fixed to viewport */}
-      <div className="fixed top-16 left-0 right-0 z-30 bg-white border-b border-gray-200 shadow-sm">
-        <nav className="-mb-px flex space-x-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      {/* Tab Navigation - Sticky */}
+      <div className="sticky top-0 z-30 bg-white border-b border-gray-200 shadow-sm">
+        <nav className="-mb-px flex space-x-8 px-4 sm:px-6 lg:px-8">
           {[
             { id: 'iap', label: 'Live IAP', icon: '📋' },
             { id: 'service-lines', label: 'Service Lines', icon: '🛠️' },
@@ -74,8 +74,8 @@ export function OperationDashboard() {
         </nav>
       </div>
       
-      {/* Tab Content - Add padding for fixed nav */}
-      <div className="min-h-[600px] pt-12">
+      {/* Tab Content */}
+      <div className="min-h-[600px]">
         {activeTab === 'overview' && (
           <div className="grid lg:grid-cols-2 gap-6">
             {/* Map */}
