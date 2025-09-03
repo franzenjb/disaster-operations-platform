@@ -18,7 +18,8 @@ import {
   PencilSquareIcon,
   EyeIcon,
   PrinterIcon,
-  ArrowDownTrayIcon
+  ArrowDownTrayIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 
 interface SectionStatus {
@@ -49,7 +50,15 @@ export function IAPWithEditMode() {
     priorities: '',
     safety: '',
     external: '',
-    ancillary: ''
+    ancillary: '',
+    contactRoster: [] as Array<{
+      id: string;
+      name: string;
+      role: string;
+      phone: string;
+      email: string;
+      organization: string;
+    }>
   });
   
   // Auto-save timer
@@ -78,7 +87,8 @@ export function IAPWithEditMode() {
       priorities: iap.sections.priorities?.content || '',
       safety: iap.sections.safety?.content || '',
       external: iap.sections.external?.content || '',
-      ancillary: iap.sections.ancillary?.content || ''
+      ancillary: iap.sections.ancillary?.content || '',
+      contactRoster: (iap.sections as any).contactRoster?.contacts || []
     });
   }, [iap, isEditMode]);
   
@@ -141,9 +151,33 @@ export function IAPWithEditMode() {
     setActiveSections(newActiveSections);
   };
   
-  const handleFieldChange = (field: keyof typeof formData, value: string) => {
+  const handleFieldChange = (field: keyof typeof formData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setAutoSaveStatus('saving');
+  };
+  
+  const addContactToRoster = () => {
+    const newContact = {
+      id: Date.now().toString(),
+      name: '',
+      role: '',
+      phone: '',
+      email: '',
+      organization: 'American Red Cross'
+    };
+    handleFieldChange('contactRoster', [...(formData.contactRoster || []), newContact]);
+  };
+  
+  const updateContact = (id: string, field: string, value: string) => {
+    const updated = (formData.contactRoster || []).map(contact => 
+      contact.id === id ? { ...contact, [field]: value } : contact
+    );
+    handleFieldChange('contactRoster', updated);
+  };
+  
+  const removeContact = (id: string) => {
+    const filtered = (formData.contactRoster || []).filter(contact => contact.id !== id);
+    handleFieldChange('contactRoster', filtered);
   };
   
   const handleSave = () => {
@@ -163,6 +197,7 @@ export function IAPWithEditMode() {
     updateIAPSection('safety', { content: formData.safety });
     updateIAPSection('external', { content: formData.external });
     updateIAPSection('ancillary', { content: formData.ancillary });
+    updateIAPSection('contactRoster' as any, { contacts: formData.contactRoster });
     
     setIsEditMode(false);
     setAutoSaveStatus('saved');
@@ -661,6 +696,166 @@ export function IAPWithEditMode() {
               </div>
             )}
           </div>
+          
+          {/* Contact Roster Section */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <button
+              onClick={() => toggleSection('contactRoster')}
+              className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 focus:outline-none focus:bg-gray-50"
+            >
+              <div className="flex items-center gap-3">
+                {(formData.contactRoster?.length || 0) > 0 ? 
+                  <CheckCircleIcon className="w-5 h-5 text-green-600" /> : 
+                  <ExclamationCircleIcon className="w-5 h-5 text-gray-400" />
+                }
+                <span className="font-semibold text-lg">Contact Roster</span>
+                <span className="text-sm text-gray-500">({formData.contactRoster?.length || 0} contacts)</span>
+              </div>
+              {activeSections.has('contactRoster') ? 
+                <ChevronUpIcon className="w-5 h-5 text-gray-400" /> : 
+                <ChevronDownIcon className="w-5 h-5 text-gray-400" />
+              }
+            </button>
+            {activeSections.has('contactRoster') && (
+              <div className="px-6 pb-6">
+                {isEditMode ? (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <p className="text-sm text-gray-600">Key personnel and contacts for this operation</p>
+                      <button
+                        onClick={addContactToRoster}
+                        className="px-3 py-1 bg-red-cross-red text-white rounded-md hover:bg-red-700 text-sm font-medium"
+                      >
+                        + Add Contact
+                      </button>
+                    </div>
+                    {(!formData.contactRoster || formData.contactRoster.length === 0) ? (
+                      <div className="text-center py-8 bg-gray-50 rounded-lg">
+                        <p className="text-gray-500">No contacts added yet</p>
+                        <button
+                          onClick={addContactToRoster}
+                          className="mt-2 text-red-cross-red hover:underline text-sm"
+                        >
+                          Add your first contact
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role/Title</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+                              <th className="px-3 py-2"></th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {(formData.contactRoster || []).map(contact => (
+                              <tr key={contact.id}>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="text"
+                                    value={contact.name}
+                                    onChange={(e) => updateContact(contact.id, 'name', e.target.value)}
+                                    placeholder="Full name"
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="text"
+                                    value={contact.role}
+                                    onChange={(e) => updateContact(contact.id, 'role', e.target.value)}
+                                    placeholder="Role/Title"
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="tel"
+                                    value={contact.phone}
+                                    onChange={(e) => updateContact(contact.id, 'phone', e.target.value)}
+                                    placeholder="(555) 555-5555"
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="email"
+                                    value={contact.email}
+                                    onChange={(e) => updateContact(contact.id, 'email', e.target.value)}
+                                    placeholder="email@redcross.org"
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <input
+                                    type="text"
+                                    value={contact.organization}
+                                    onChange={(e) => updateContact(contact.id, 'organization', e.target.value)}
+                                    placeholder="Organization"
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  />
+                                </td>
+                                <td className="px-3 py-2">
+                                  <button
+                                    onClick={() => removeContact(contact.id)}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <TrashIcon className="w-4 h-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    {(!formData.contactRoster || formData.contactRoster.length === 0) ? (
+                      <p className="text-gray-500 italic">No contacts in roster</p>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role/Title</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {(formData.contactRoster || []).map(contact => (
+                              <tr key={contact.id}>
+                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{contact.name || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-600">{contact.role || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-600">{contact.phone || '-'}</td>
+                                <td className="px-4 py-3 text-sm text-gray-600">
+                                  {contact.email ? (
+                                    <a href={`mailto:${contact.email}`} className="text-blue-600 hover:underline">
+                                      {contact.email}
+                                    </a>
+                                  ) : '-'}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-600">{contact.organization || '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         
         {/* Section Status Summary */}
@@ -675,7 +870,8 @@ export function IAPWithEditMode() {
               { id: 'priorities', name: 'Operational Priorities', hasContent: !!formData.priorities },
               { id: 'safety', name: 'Safety & Security', hasContent: !!formData.safety },
               { id: 'external', name: 'External Coordination', hasContent: !!formData.external },
-              { id: 'ancillary', name: 'Ancillary Notes', hasContent: !!formData.ancillary }
+              { id: 'ancillary', name: 'Ancillary Notes', hasContent: !!formData.ancillary },
+              { id: 'contactRoster', name: 'Contact Roster', hasContent: (formData.contactRoster?.length || 0) > 0 }
             ].map(section => (
               <div key={section.id} className="flex items-center gap-2">
                 {section.hasContent ? 
