@@ -10,246 +10,54 @@ import { ICS215StandardForm } from './ICS215StandardForm';
 import { ICS215GridInterface } from './ICS215GridInterface';
 import { ICS215GuidedEntry } from './ICS215GuidedEntry';
 import { ICS215Worksheet, WorkAssignment, RedCrossDivision } from '../../types/ics-215-types';
+import { clearICS215Data } from '../../utils/clearICS215Data';
+import { useICS215GridStore } from '../../stores/useICS215GridStore';
 
 export function ICS215Demo() {
   const [viewMode, setViewMode] = useState<'guided' | 'grid' | 'standard'>('guided');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [worksheetData, setWorksheetData] = useState<ICS215Worksheet | null>(null);
   const [workAssignments, setWorkAssignments] = useState<WorkAssignment[]>([]);
 
+  // Get summary from grid store for display
+  const getIAPSummary = useICS215GridStore(state => state.getIAPSummary);
+
   useEffect(() => {
-    // Simulate loading sample data from Hurricane Ian Response
-    const loadSampleData = async () => {
-      setIsLoading(true);
-      
-      // Sample worksheet data based on actual DR836-23
-      const sampleWorksheet: ICS215Worksheet = {
-        id: 'worksheet-dr836-23-001',
-        worksheetId: 'ICS-215-DR836-23-20221026-001',
-        operationId: 'DR836-23',
+    // Start with clean data - no demo data
+    const initializeCleanWorksheet = () => {
+      // Create empty worksheet with basic info only
+      const emptyWorksheet: ICS215Worksheet = {
+        id: `worksheet-${Date.now()}`,
+        worksheetId: `ICS-215-${new Date().toISOString().split('T')[0]}`,
+        operationId: 'current',
         worksheetNumber: 1,
-        operationalPeriodStart: new Date('2022-10-26T08:00:00'),
-        operationalPeriodEnd: new Date('2022-10-26T20:00:00'),
-        incidentName: 'Hurricane Ian Response - Southwest Florida',
-        incidentNumber: 'DR836-23',
-        preparedBy: 'John Smith, Planning Section Chief',
-        preparedDate: new Date('2022-10-26T07:30:00'),
+        operationalPeriodStart: new Date(),
+        operationalPeriodEnd: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        incidentName: '',
+        incidentNumber: '',
+        preparedBy: '',
+        preparedDate: new Date(),
         sectionType: 'Operations',
-        status: 'approved',
+        status: 'draft',
         priorityLevel: 1,
-        missionStatement: 'Provide emergency mass care services including feeding, sheltering, and emergency supplies distribution to hurricane-affected populations in Lee, Charlotte, and Collier Counties.',
-        situationSummary: 'Hurricane Ian made landfall as Category 4 storm on September 28, 2022. Widespread power outages affecting 2.5M customers, severe flooding in coastal areas, and significant structural damage. Estimated 400,000 residents displaced. State of Emergency declared for all 67 Florida counties.',
-        specialInstructions: 'Coordinate with state EOC and local emergency management. All field teams use unified command structure. Priority focus on barrier islands and coastal communities. Maintain 24-hour communications with Incident Command.',
+        missionStatement: '',
+        situationSummary: '',
+        specialInstructions: '',
         versionNumber: 1,
         isCurrentVersion: true,
-        createdAt: new Date('2022-10-26T06:00:00'),
-        updatedAt: new Date('2022-10-26T07:30:00')
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
 
-      // Sample work assignments representing typical Red Cross disaster response
-      const sampleAssignments: WorkAssignment[] = [
-        {
-          id: 'assignment-001',
-          worksheetId: 'worksheet-dr836-23-001',
-          assignmentNumber: '1',
-          divisionGroup: 'Feeding_Food_Services',
-          workAssignmentName: 'Fixed Site Feeding - Fort Myers Convention Center',
-          workLocation: '1375 Monroe St, Fort Myers, FL 33901',
-          reportTime: new Date('2022-10-26T09:00:00'),
-          specialInstructions: 'Target 2,000 meals per operational period. Coordinate with Salvation Army for additional capacity.',
-          resourceRequirements: [
-            {
-              id: 'resource-001-001',
-              assignmentId: 'assignment-001',
-              resourceKind: 'Personnel',
-              resourceType: 'ERV Team Leader',
-              numberOfPersons: 1,
-              quantityRequested: 1,
-              quantityHave: 1,
-              quantityNeed: 0,
-              leader: 'Maria Garcia',
-              contactInfo: 'Radio: TAC-1, Cell: 239-555-0123',
-              status: 'available'
-            },
-            {
-              id: 'resource-001-002',
-              assignmentId: 'assignment-001',
-              resourceKind: 'Personnel',
-              resourceType: 'Food Service Volunteers',
-              numberOfPersons: 8,
-              quantityRequested: 8,
-              quantityHave: 6,
-              quantityNeed: 2,
-              status: 'requested'
-            },
-            {
-              id: 'resource-001-003',
-              assignmentId: 'assignment-001',
-              resourceKind: 'Vehicles',
-              resourceType: 'Emergency Response Vehicles (ERV)',
-              numberOfPersons: 2,
-              quantityRequested: 2,
-              quantityHave: 2,
-              quantityNeed: 0,
-              status: 'available'
-            }
-          ],
-          status: 'in_progress',
-          progressPercentage: 75,
-          createdAt: new Date('2022-10-26T06:30:00'),
-          updatedAt: new Date('2022-10-26T07:15:00')
-        },
-        {
-          id: 'assignment-002',
-          worksheetId: 'worksheet-dr836-23-001',
-          assignmentNumber: '2',
-          divisionGroup: 'Sheltering_Dormitory_Operations',
-          workAssignmentName: 'Emergency Shelter Operations - Hertz Arena',
-          workLocation: '11000 Everblades Pkwy, Estero, FL 33928',
-          reportTime: new Date('2022-10-26T08:30:00'),
-          specialInstructions: 'Congregate care facility. Capacity 500 clients. ADA compliant. Pet-friendly shelter.',
-          resourceRequirements: [
-            {
-              id: 'resource-002-001',
-              assignmentId: 'assignment-002',
-              resourceKind: 'Personnel',
-              resourceType: 'Shelter Manager',
-              numberOfPersons: 1,
-              quantityRequested: 1,
-              quantityHave: 1,
-              quantityNeed: 0,
-              leader: 'Robert Chen',
-              contactInfo: 'Radio: COMMAND, Cell: 239-555-0456',
-              status: 'available'
-            },
-            {
-              id: 'resource-002-002',
-              assignmentId: 'assignment-002',
-              resourceKind: 'Personnel',
-              resourceType: 'Shelter Staff',
-              numberOfPersons: 12,
-              quantityRequested: 12,
-              quantityHave: 8,
-              quantityNeed: 4,
-              status: 'requested'
-            },
-            {
-              id: 'resource-002-003',
-              assignmentId: 'assignment-002',
-              resourceKind: 'Supplies',
-              resourceType: 'Cots and Blankets',
-              numberOfPersons: 0,
-              quantityRequested: 500,
-              quantityHave: 300,
-              quantityNeed: 200,
-              status: 'requested'
-            }
-          ],
-          status: 'in_progress',
-          progressPercentage: 60,
-          createdAt: new Date('2022-10-26T06:45:00'),
-          updatedAt: new Date('2022-10-26T07:20:00')
-        },
-        {
-          id: 'assignment-003',
-          worksheetId: 'worksheet-dr836-23-001',
-          assignmentNumber: '3',
-          divisionGroup: 'Mass_Care_Distribution_Emergency_Supplies',
-          workAssignmentName: 'Bulk Distribution - Sanibel Causeway',
-          workLocation: 'Sanibel Causeway Mainland Side, Fort Myers, FL',
-          reportTime: new Date('2022-10-26T10:00:00'),
-          specialInstructions: 'Bridge access limited. Coordinate with Coast Guard for boat transport to barrier islands.',
-          resourceRequirements: [
-            {
-              id: 'resource-003-001',
-              assignmentId: 'assignment-003',
-              resourceKind: 'Personnel',
-              resourceType: 'Distribution Team Leader',
-              numberOfPersons: 1,
-              quantityRequested: 1,
-              quantityHave: 0,
-              quantityNeed: 1,
-              status: 'requested'
-            },
-            {
-              id: 'resource-003-002',
-              assignmentId: 'assignment-003',
-              resourceKind: 'Vehicles',
-              resourceType: 'Supply Trucks',
-              numberOfPersons: 0,
-              quantityRequested: 3,
-              quantityHave: 2,
-              quantityNeed: 1,
-              status: 'enroute'
-            },
-            {
-              id: 'resource-003-003',
-              assignmentId: 'assignment-003',
-              resourceKind: 'Supplies',
-              resourceType: 'Emergency Supply Kits',
-              numberOfPersons: 0,
-              quantityRequested: 1000,
-              quantityHave: 750,
-              quantityNeed: 250,
-              status: 'requested'
-            }
-          ],
-          status: 'assigned',
-          progressPercentage: 25,
-          createdAt: new Date('2022-10-26T07:00:00'),
-          updatedAt: new Date('2022-10-26T07:30:00')
-        },
-        {
-          id: 'assignment-004',
-          worksheetId: 'worksheet-dr836-23-001',
-          assignmentNumber: '4',
-          divisionGroup: 'Health_Services',
-          workAssignmentName: 'Mobile Health Services - Pine Island',
-          workLocation: 'Pine Island, FL (Mobile Operations)',
-          reportTime: new Date('2022-10-26T11:00:00'),
-          specialInstructions: 'Remote area with limited access. Focus on elderly population and those with medical needs.',
-          resourceRequirements: [
-            {
-              id: 'resource-004-001',
-              assignmentId: 'assignment-004',
-              resourceKind: 'Personnel',
-              resourceType: 'Registered Nurse',
-              numberOfPersons: 2,
-              quantityRequested: 2,
-              quantityHave: 1,
-              quantityNeed: 1,
-              leader: 'Susan Lee, RN',
-              contactInfo: 'Radio: MED-1, Cell: 239-555-0789',
-              status: 'requested'
-            },
-            {
-              id: 'resource-004-002',
-              assignmentId: 'assignment-004',
-              resourceKind: 'Vehicles',
-              resourceType: 'Mobile Health Unit',
-              numberOfPersons: 0,
-              quantityRequested: 1,
-              quantityHave: 1,
-              quantityNeed: 0,
-              status: 'available'
-            }
-          ],
-          status: 'assigned',
-          progressPercentage: 10,
-          createdAt: new Date('2022-10-26T07:15:00'),
-          updatedAt: new Date('2022-10-26T07:25:00')
-        }
-      ];
-
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Start with NO assignments - completely empty
+      const emptyAssignments: WorkAssignment[] = [];
       
-      setWorksheetData(sampleWorksheet);
-      setWorkAssignments(sampleAssignments);
+      setWorksheetData(emptyWorksheet);
+      setWorkAssignments(emptyAssignments);
       setIsLoading(false);
     };
 
-    loadSampleData();
+    initializeCleanWorksheet();
   }, []);
 
   const handleSave = async (data: { worksheet: ICS215Worksheet; assignments: WorkAssignment[] }) => {
@@ -295,10 +103,10 @@ export function ICS215Demo() {
           <div className="text-center">
             <h1 className="text-2xl font-bold">ICS Form 215 - Operational Planning Worksheet</h1>
             <p className="mt-1 text-blue-100">
-              Demo: Hurricane Ian Response (DR836-23) - October 26, 2022
+              Operational Period: {new Date().toLocaleDateString()}
             </p>
             <p className="text-sm text-blue-200">
-              This form replicates the exact Excel structure used by Red Cross disaster response teams
+              Enter resources using Guided Entry, then view in Excel Grid or Full Form
             </p>
             
             {/* View Mode Toggle */}
@@ -373,41 +181,6 @@ export function ICS215Demo() {
             printMode={false}
             readonly={false}
           />
-          
-          {/* Demo Information */}
-          <div className="bg-gray-100 border-t border-gray-200 py-6">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="bg-white rounded-lg shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">About This Demo</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Real Disaster Data</h4>
-                    <p className="text-sm text-gray-600">
-                      This form contains sample data based on the actual Hurricane Ian response in Southwest Florida,
-                      demonstrating how Red Cross teams would use ICS Form 215 during major disaster operations.
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Standard ICS Format</h4>
-                    <p className="text-sm text-gray-600">
-                      The form follows the exact structure of the standard ICS Form 215, including all required fields,
-                      Red Cross operational divisions, and resource requirement calculations.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
-                  <h4 className="font-medium text-yellow-900 mb-2">Features Demonstrated</h4>
-                  <ul className="text-sm text-yellow-800 space-y-1">
-                    <li>• Standard ICS 215 header with incident information and operational period</li>
-                    <li>• Red Cross operational divisions (Feeding, Sheltering, Mass Care, Health Services, etc.)</li>
-                    <li>• Work assignments with resource requirements and Have/Need calculations</li>
-                    <li>• Real-time editing and automatic save functionality</li>
-                    <li>• Print-friendly format matching the original Excel worksheet</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
         </>
       )}
     </div>
