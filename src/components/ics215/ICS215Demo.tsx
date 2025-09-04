@@ -8,7 +8,7 @@
 import React, { useState, useEffect } from 'react';
 import { ICS215StandardForm } from './ICS215StandardForm';
 import { ICS215GridInterface } from './ICS215GridInterface';
-import { ICS215GuidedEntry } from './ICS215GuidedEntry';
+import { ICS215GuidedEntryV3 } from './ICS215GuidedEntryV3';
 import { ICS215Worksheet, WorkAssignment, RedCrossDivision } from '../../types/ics-215-types';
 import { clearICS215Data } from '../../utils/clearICS215Data';
 import { useICS215GridStore } from '../../stores/useICS215GridStore';
@@ -172,12 +172,7 @@ export function ICS215Demo() {
 
       {/* Conditionally render the view based on mode */}
       {viewMode === 'guided' ? (
-        <ICS215GuidedEntry 
-          onSave={(resource) => {
-            console.log('Resource saved:', resource);
-            // In production, this would save to the database
-          }}
-        />
+        <ICS215GuidedEntryV3 />
       ) : viewMode === 'grid' ? (
         <ICS215GridInterface />
       ) : (
