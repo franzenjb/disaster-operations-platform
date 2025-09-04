@@ -285,15 +285,10 @@ export function ICS215Demo() {
     );
   }
 
-  // Show grid view for the new Excel-like interface
-  if (viewMode === 'grid') {
-    return <ICS215GridInterface />;
-  }
-
-  // Show standard form view (original)
+  // Always show the header with view toggle, then conditionally show the content
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Demo Header with View Toggle */}
+      {/* Demo Header with View Toggle - Always visible */}
       <div className="bg-blue-600 text-white py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -309,13 +304,21 @@ export function ICS215Demo() {
             <div className="mt-4">
               <button
                 onClick={() => setViewMode('grid')}
-                className="px-4 py-2 bg-blue-700 text-white rounded-l-lg hover:bg-blue-800 transition-colors"
+                className={`px-4 py-2 text-white rounded-l-lg transition-colors ${
+                  viewMode === 'grid' 
+                    ? 'bg-blue-800 font-semibold' 
+                    : 'bg-blue-700 hover:bg-blue-800'
+                }`}
               >
                 📊 Excel Grid View
               </button>
               <button
                 onClick={() => setViewMode('standard')}
-                className="px-4 py-2 bg-blue-500 text-white rounded-r-lg hover:bg-blue-600 transition-colors"
+                className={`px-4 py-2 text-white rounded-r-lg transition-colors ${
+                  viewMode === 'standard' 
+                    ? 'bg-blue-600 font-semibold' 
+                    : 'bg-blue-500 hover:bg-blue-600'
+                }`}
               >
                 📝 Standard Form View
               </button>
@@ -324,49 +327,56 @@ export function ICS215Demo() {
         </div>
       </div>
 
-      {/* Form Component */}
-      <ICS215StandardForm
-        worksheetData={worksheetData}
-        workAssignments={workAssignments}
-        onSave={handleSave}
-        printMode={false}
-        readonly={false}
-      />
-
-      {/* Demo Information */}
-      <div className="bg-gray-100 border-t border-gray-200 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">About This Demo</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Real Disaster Data</h4>
-                <p className="text-sm text-gray-600">
-                  This form contains sample data based on the actual Hurricane Ian response in Southwest Florida,
-                  demonstrating how Red Cross teams would use ICS Form 215 during major disaster operations.
-                </p>
+      {/* Conditionally render the view based on mode */}
+      {viewMode === 'grid' ? (
+        <ICS215GridInterface />
+      ) : (
+        <>
+          {/* Form Component */}
+          <ICS215StandardForm
+            worksheetData={worksheetData}
+            workAssignments={workAssignments}
+            onSave={handleSave}
+            printMode={false}
+            readonly={false}
+          />
+          
+          {/* Demo Information */}
+          <div className="bg-gray-100 border-t border-gray-200 py-6">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">About This Demo</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Real Disaster Data</h4>
+                    <p className="text-sm text-gray-600">
+                      This form contains sample data based on the actual Hurricane Ian response in Southwest Florida,
+                      demonstrating how Red Cross teams would use ICS Form 215 during major disaster operations.
+                    </p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">Standard ICS Format</h4>
+                    <p className="text-sm text-gray-600">
+                      The form follows the exact structure of the standard ICS Form 215, including all required fields,
+                      Red Cross operational divisions, and resource requirement calculations.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
+                  <h4 className="font-medium text-yellow-900 mb-2">Features Demonstrated</h4>
+                  <ul className="text-sm text-yellow-800 space-y-1">
+                    <li>• Standard ICS 215 header with incident information and operational period</li>
+                    <li>• Red Cross operational divisions (Feeding, Sheltering, Mass Care, Health Services, etc.)</li>
+                    <li>• Work assignments with resource requirements and Have/Need calculations</li>
+                    <li>• Real-time editing and automatic save functionality</li>
+                    <li>• Print-friendly format matching the original Excel worksheet</li>
+                  </ul>
+                </div>
               </div>
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Standard ICS Format</h4>
-                <p className="text-sm text-gray-600">
-                  The form follows the exact structure of the standard ICS Form 215, including all required fields,
-                  Red Cross operational divisions, and resource requirement calculations.
-                </p>
-              </div>
-            </div>
-            <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
-              <h4 className="font-medium text-yellow-900 mb-2">Features Demonstrated</h4>
-              <ul className="text-sm text-yellow-800 space-y-1">
-                <li>• Standard ICS 215 header with incident information and operational period</li>
-                <li>• Red Cross operational divisions (Feeding, Sheltering, Mass Care, Health Services, etc.)</li>
-                <li>• Work assignments with resource requirements and Have/Need calculations</li>
-                <li>• Real-time editing and automatic save functionality</li>
-                <li>• Print-friendly format matching the original Excel worksheet</li>
-              </ul>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
