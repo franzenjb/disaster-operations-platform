@@ -7,9 +7,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { ICS215StandardForm } from './ICS215StandardForm';
+import { ICS215GridInterface } from './ICS215GridInterface';
 import { ICS215Worksheet, WorkAssignment, RedCrossDivision } from '../../types/ics-215-types';
 
 export function ICS215Demo() {
+  const [viewMode, setViewMode] = useState<'grid' | 'standard'>('grid');
   const [isLoading, setIsLoading] = useState(true);
   const [worksheetData, setWorksheetData] = useState<ICS215Worksheet | null>(null);
   const [workAssignments, setWorkAssignments] = useState<WorkAssignment[]>([]);
@@ -283,9 +285,15 @@ export function ICS215Demo() {
     );
   }
 
+  // Show grid view for the new Excel-like interface
+  if (viewMode === 'grid') {
+    return <ICS215GridInterface />;
+  }
+
+  // Show standard form view (original)
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Demo Header */}
+      {/* Demo Header with View Toggle */}
       <div className="bg-blue-600 text-white py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
@@ -296,6 +304,22 @@ export function ICS215Demo() {
             <p className="text-sm text-blue-200">
               This form replicates the exact Excel structure used by Red Cross disaster response teams
             </p>
+            
+            {/* View Mode Toggle */}
+            <div className="mt-4">
+              <button
+                onClick={() => setViewMode('grid')}
+                className="px-4 py-2 bg-blue-700 text-white rounded-l-lg hover:bg-blue-800 transition-colors"
+              >
+                📊 Excel Grid View
+              </button>
+              <button
+                onClick={() => setViewMode('standard')}
+                className="px-4 py-2 bg-blue-500 text-white rounded-r-lg hover:bg-blue-600 transition-colors"
+              >
+                📝 Standard Form View
+              </button>
+            </div>
           </div>
         </div>
       </div>
