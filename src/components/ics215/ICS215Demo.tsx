@@ -8,10 +8,11 @@
 import React, { useState, useEffect } from 'react';
 import { ICS215StandardForm } from './ICS215StandardForm';
 import { ICS215GridInterface } from './ICS215GridInterface';
+import { ICS215GuidedEntry } from './ICS215GuidedEntry';
 import { ICS215Worksheet, WorkAssignment, RedCrossDivision } from '../../types/ics-215-types';
 
 export function ICS215Demo() {
-  const [viewMode, setViewMode] = useState<'grid' | 'standard'>('grid');
+  const [viewMode, setViewMode] = useState<'guided' | 'grid' | 'standard'>('guided');
   const [isLoading, setIsLoading] = useState(true);
   const [worksheetData, setWorksheetData] = useState<ICS215Worksheet | null>(null);
   const [workAssignments, setWorkAssignments] = useState<WorkAssignment[]>([]);
@@ -301,34 +302,66 @@ export function ICS215Demo() {
             </p>
             
             {/* View Mode Toggle */}
-            <div className="mt-4">
-              <button
-                onClick={() => setViewMode('grid')}
-                className={`px-4 py-2 text-white rounded-l-lg transition-colors ${
-                  viewMode === 'grid' 
-                    ? 'bg-blue-800 font-semibold' 
-                    : 'bg-blue-700 hover:bg-blue-800'
-                }`}
-              >
-                📊 Excel Grid View
-              </button>
-              <button
-                onClick={() => setViewMode('standard')}
-                className={`px-4 py-2 text-white rounded-r-lg transition-colors ${
-                  viewMode === 'standard' 
-                    ? 'bg-blue-600 font-semibold' 
-                    : 'bg-blue-500 hover:bg-blue-600'
-                }`}
-              >
-                📝 Standard Form View
-              </button>
+            <div className="mt-4 flex justify-center">
+              <div className="inline-flex rounded-lg shadow-sm" role="group">
+                <button
+                  onClick={() => setViewMode('guided')}
+                  className={`px-6 py-3 text-white rounded-l-lg transition-all ${
+                    viewMode === 'guided' 
+                      ? 'bg-green-600 font-semibold shadow-inner' 
+                      : 'bg-green-500 hover:bg-green-600'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    ✨ <span>Guided Entry</span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`px-6 py-3 text-white transition-all ${
+                    viewMode === 'grid' 
+                      ? 'bg-blue-700 font-semibold shadow-inner' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    📊 <span>Excel Grid</span>
+                  </span>
+                </button>
+                <button
+                  onClick={() => setViewMode('standard')}
+                  className={`px-6 py-3 text-white rounded-r-lg transition-all ${
+                    viewMode === 'standard' 
+                      ? 'bg-gray-600 font-semibold shadow-inner' 
+                      : 'bg-gray-500 hover:bg-gray-600'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    📝 <span>Full Form</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+            
+            {/* Mode descriptions */}
+            <div className="mt-3 text-sm text-blue-100">
+              {viewMode === 'guided' && "Step-by-step entry for one resource at a time - perfect for field workers"}
+              {viewMode === 'grid' && "Excel-like interface for bulk data entry and review"}
+              {viewMode === 'standard' && "Complete ICS Form 215 with all sections"}
             </div>
           </div>
         </div>
       </div>
 
       {/* Conditionally render the view based on mode */}
-      {viewMode === 'grid' ? (
+      {viewMode === 'guided' ? (
+        <ICS215GuidedEntry 
+          onSave={(resource) => {
+            console.log('Resource saved:', resource);
+            // In production, this would save to the database
+          }}
+        />
+      ) : viewMode === 'grid' ? (
         <ICS215GridInterface />
       ) : (
         <>
