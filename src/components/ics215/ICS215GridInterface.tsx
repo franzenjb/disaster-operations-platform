@@ -20,229 +20,70 @@ import {
   getServiceLineConfig
 } from '../../config/ics215-service-lines';
 import { useOperationStore } from '../../stores/useOperationStore';
+import { useICS215GridStore } from '../../stores/useICS215GridStore';
 
 export function ICS215GridInterface() {
   const operation = useOperationStore(state => state.currentOperation);
   
-  // State for managing tabs and data
+  // Connect to central store
+  const resources = useICS215GridStore(state => state.resources);
+  const hasUnsavedChanges = useICS215GridStore(state => state.hasUnsavedChanges);
+  const lastSaved = useICS215GridStore(state => state.lastSaved);
+  const updateResource = useICS215GridStore(state => state.updateResource);
+  const addResourceToStore = useICS215GridStore(state => state.addResource);
+  const deleteResourceFromStore = useICS215GridStore(state => state.deleteResource);
+  const getServiceLineSummary = useICS215GridStore(state => state.getServiceLineSummary);
+  
+  // Local UI state
   const [activeTab, setActiveTab] = useState<ServiceLineType>('sheltering');
-  const [resources, setResources] = useState<Record<ServiceLineType, ICSResource[]>>({
-    'sheltering': [],
-    'kitchen': [],
-    'mobile-feeding': [],
-    'disaster-aid': [],
-    'individual-care': [],
-    'distribution': []
-  });
   const [isEditMode, setIsEditMode] = useState(false);
-  const [lastSaved, setLastSaved] = useState(new Date());
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   
-  // Load demo data on mount
-  useEffect(() => {
-    // Load any saved data from localStorage or initialize with demo data
-    const savedData = localStorage.getItem('ics215-grid-data');
-    if (savedData) {
-      try {
-        const parsed = JSON.parse(savedData);
-        setResources(parsed);
-      } catch (e) {
-        console.error('Error loading saved data:', e);
-        initializeDemoData();
-      }
-    } else {
-      initializeDemoData();
-    }
-  }, []);
+  // Note: Data is now loaded from the central store via Zustand persist
+  // No need for separate initialization - the store handles it
   
-  // Initialize with demo data
-  const initializeDemoData = () => {
-    setResources({
-      'sheltering': [
-        {
-          id: '1',
-          type: 'shelter',
-          name: 'Fort Myers Convention Center',
-          address: '1375 Monroe St, Fort Myers, FL 33901',
-          county: 'Lee',
-          phone: '(239) 555-1234',
-          status: 'yellow',
-          capacity: 500,
-          currentOccupancy: 423,
-          manager: 'John Smith',
-          lastUpdated: new Date(),
-          dailyData: {}
-        },
-        {
-          id: '2',
-          type: 'shelter',
-          name: 'Hertz Arena',
-          address: '11000 Everblades Pkwy, Estero, FL 33928',
-          county: 'Lee',
-          phone: '(239) 555-5678',
-          status: 'green',
-          capacity: 800,
-          currentOccupancy: 245,
-          manager: 'Jane Doe',
-          lastUpdated: new Date(),
-          dailyData: {}
-        }
-      ],
-      'kitchen': [
-        {
-          id: '3',
-          type: 'kitchen',
-          name: 'Central Kitchen - Fort Myers',
-          address: '11215 Metro Pkwy, Fort Myers, FL 33966',
-          county: 'Lee',
-          status: 'green',
-          mealsCapacity: 5000,
-          mealsServed: 3850,
-          mealType: 'all',
-          lastUpdated: new Date(),
-          dailyData: {}
-        }
-      ],
-      'mobile-feeding': [
-        {
-          id: '4',
-          type: 'mobile-feeding',
-          name: 'ERV Team Alpha',
-          vehicleNumber: 'ERV-001',
-          crewSize: 3,
-          routeName: 'North Fort Myers Route',
-          status: 'green',
-          lastUpdated: new Date(),
-          dailyData: {}
-        },
-        {
-          id: '5',
-          type: 'mobile-feeding',
-          name: 'ERV Team Bravo',
-          vehicleNumber: 'ERV-002',
-          crewSize: 3,
-          routeName: 'Cape Coral Route',
-          status: 'yellow',
-          lastUpdated: new Date(),
-          dailyData: {}
-        }
-      ],
-      'disaster-aid': [],
-      'individual-care': [],
-      'distribution': []
-    });
-  };
-  
-  // Handle cell change
+  // Handle cell change - now updates central store
   const handleCellChange = useCallback((
     resourceId: string,
     columnId: string,
     value: CellValue,
     date?: string
   ) => {
-    setResources(prev => {
-      const newResources = { ...prev };
-      const serviceLineResources = [...newResources[activeTab]];
-      const resourceIndex = serviceLineResources.findIndex(r => r.id === resourceId);
-      
-      if (resourceIndex !== -1) {
-        const resource = { ...serviceLineResources[resourceIndex] };
-        
-        if (date && columnId === 'dailyData') {
-          // Handle date-specific data
-          const dailyData = { ...(resource as any).dailyData };
-          if (!dailyData[date]) {
-            dailyData[date] = { status: 'white' };
-          }
-          dailyData[date] = { ...dailyData[date], value };
-          (resource as any).dailyData = dailyData;
-        } else {
-          // Handle static column data
-          (resource as any)[columnId] = value;
-        }
-        
-        resource.lastUpdated = new Date();
-        serviceLineResources[resourceIndex] = resource;
-        newResources[activeTab] = serviceLineResources;
+    const resource = resources[activeTab].find(r => r.id === resourceId);
+    if (!resource) return;
+    
+    let updates: Partial<ICSResource> = {};
+    
+    if (date && columnId === 'dailyData') {
+      // Handle date-specific data
+      const dailyData = { ...(resource as any).dailyData };
+      if (!dailyData[date]) {
+        dailyData[date] = { status: 'white' };
       }
-      
-      return newResources;
-    });
+      dailyData[date] = { ...dailyData[date], value };
+      updates = { dailyData };
+    } else {
+      // Handle static column data
+      updates = { [columnId]: value };
+    }
     
-    setHasUnsavedChanges(true);
-    
-    // Auto-save to localStorage
-    setTimeout(() => {
-      saveToLocalStorage();
-    }, 2000);
-  }, [activeTab]);
+    // Update in central store
+    updateResource(activeTab, resourceId, updates);
+  }, [activeTab, resources, updateResource]);
   
-  // Add new resource
+  // Add new resource - now adds to central store
   const handleResourceAdd = useCallback(() => {
     const config = getServiceLineConfig(activeTab);
-    const newResource: any = {
+    const newResource: ICSResource = {
       id: Date.now().toString(),
       ...config.defaultResource,
       name: `New ${config.displayName} Resource`,
       lastUpdated: new Date(),
       dailyData: {}
-    };
+    } as ICSResource;
     
-    setResources(prev => ({
-      ...prev,
-      [activeTab]: [...prev[activeTab], newResource]
-    }));
-    
-    setHasUnsavedChanges(true);
-  }, [activeTab]);
-  
-  // Save to localStorage
-  const saveToLocalStorage = () => {
-    localStorage.setItem('ics215-grid-data', JSON.stringify(resources));
-    setLastSaved(new Date());
-    setHasUnsavedChanges(false);
-  };
-  
-  // Calculate summary for current service line
-  const calculateSummary = (): ServiceLineSummary => {
-    const serviceLineResources = resources[activeTab];
-    const config = getServiceLineConfig(activeTab);
-    
-    const summary: ServiceLineSummary = {
-      serviceLineType: activeTab,
-      operationalPeriod: {
-        start: new Date(),
-        end: new Date(Date.now() + 24 * 60 * 60 * 1000)
-      },
-      totalResources: serviceLineResources.length,
-      activeResources: serviceLineResources.filter(r => r.status !== 'gray').length,
-      criticalResources: serviceLineResources.filter(r => r.status === 'red').length,
-      metrics: {},
-      trends: {},
-      issues: [],
-      recommendations: [],
-      lastUpdated: new Date()
-    };
-    
-    // Calculate metrics based on rollup configurations
-    config.rollupCalculations.forEach(rollup => {
-      if (rollup.calculation === 'sum') {
-        // Simple sum calculation
-        summary.metrics[rollup.id] = serviceLineResources.length * 100; // Placeholder
-      } else if (rollup.calculation === 'count') {
-        summary.metrics[rollup.id] = serviceLineResources.length;
-      } else if (rollup.customFormula) {
-        summary.metrics[rollup.id] = rollup.customFormula(serviceLineResources);
-      }
-    });
-    
-    // Identify issues
-    if (summary.criticalResources > 0) {
-      summary.issues.push(`${summary.criticalResources} resources in critical status`);
-    }
-    
-    return summary;
-  };
+    // Add to central store
+    addResourceToStore(activeTab, newResource);
+  }, [activeTab, addResourceToStore]);
   
   // Get tab counts for visual indicators
   const getTabCounts = (serviceLineType: ServiceLineType) => {

@@ -15,6 +15,7 @@ import {
   DistributionResource
 } from '../../types/ics-215-grid-types';
 import { getServiceLineDisplayName } from '../../config/ics215-service-lines';
+import { useICS215GridStore } from '../../stores/useICS215GridStore';
 
 interface Props {
   onSave?: (resource: ICSResource) => void;
@@ -23,6 +24,10 @@ interface Props {
 }
 
 export function ICS215GuidedEntry({ onSave, onCancel, existingResource }: Props) {
+  // Connect to central store
+  const addResource = useICS215GridStore(state => state.addResource);
+  const updateResource = useICS215GridStore(state => state.updateResource);
+  
   // State
   const [step, setStep] = useState(1);
   const [resourceType, setResourceType] = useState<ServiceLineType | null>(null);
@@ -111,22 +116,35 @@ export function ICS215GuidedEntry({ onSave, onCancel, existingResource }: Props)
 
   // Final save
   const handleFinalSave = () => {
+    if (!resourceType) return;
+    
     const resource: ICSResource = {
       id: existingResource?.id || Date.now().toString(),
       ...formData,
       lastUpdated: new Date()
     } as ICSResource;
     
+    // Save to central store
+    if (existingResource) {
+      updateResource(resourceType, existingResource.id, resource);
+    } else {
+      addResource(resourceType, resource);
+    }
+    
+    // Call optional onSave callback
     if (onSave) {
       onSave(resource);
     }
     
-    // Reset for next entry
+    // Show success message
     setSavedMessage('✓ Resource saved successfully!');
+    
+    // Reset for next entry after delay
     setTimeout(() => {
       setStep(1);
       setResourceType(null);
       setFormData({ status: 'green', lastUpdated: new Date() });
+      setSavedMessage('');
     }, 2000);
   };
 
