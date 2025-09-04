@@ -12,63 +12,72 @@ import { ICS215GuidedEntry } from './ICS215GuidedEntry';
 import { ICS215Worksheet, WorkAssignment, RedCrossDivision } from '../../types/ics-215-types';
 import { clearICS215Data } from '../../utils/clearICS215Data';
 import { useICS215GridStore } from '../../stores/useICS215GridStore';
+import { resourcesToWorkAssignments, workAssignmentsToResources } from '../../utils/ics215Converter';
+import { ServiceLineType, ICSResource } from '../../types/ics-215-grid-types';
 
 export function ICS215Demo() {
   const [viewMode, setViewMode] = useState<'guided' | 'grid' | 'standard'>('guided');
   const [isLoading, setIsLoading] = useState(false);
   const [worksheetData, setWorksheetData] = useState<ICS215Worksheet | null>(null);
-  const [workAssignments, setWorkAssignments] = useState<WorkAssignment[]>([]);
 
-  // Get summary from grid store for display
+  // Connect to central store
+  const resources = useICS215GridStore(state => state.resources);
+  const addResource = useICS215GridStore(state => state.addResource);
+  const updateResource = useICS215GridStore(state => state.updateResource);
+  const importResources = useICS215GridStore(state => state.importResources);
   const getIAPSummary = useICS215GridStore(state => state.getIAPSummary);
 
   useEffect(() => {
-    // Start with clean data - no demo data
-    const initializeCleanWorksheet = () => {
-      // Create empty worksheet with basic info only
-      const emptyWorksheet: ICS215Worksheet = {
-        id: `worksheet-${Date.now()}`,
-        worksheetId: `ICS-215-${new Date().toISOString().split('T')[0]}`,
-        operationId: 'current',
-        worksheetNumber: 1,
-        operationalPeriodStart: new Date(),
-        operationalPeriodEnd: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        incidentName: '',
-        incidentNumber: '',
-        preparedBy: '',
-        preparedDate: new Date(),
-        sectionType: 'Operations',
-        status: 'draft',
-        priorityLevel: 1,
-        missionStatement: '',
-        situationSummary: '',
-        specialInstructions: '',
-        versionNumber: 1,
-        isCurrentVersion: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-
-      // Start with NO assignments - completely empty
-      const emptyAssignments: WorkAssignment[] = [];
-      
-      setWorksheetData(emptyWorksheet);
-      setWorkAssignments(emptyAssignments);
-      setIsLoading(false);
+    // Initialize empty worksheet
+    const emptyWorksheet: ICS215Worksheet = {
+      id: `worksheet-${Date.now()}`,
+      worksheetId: `ICS-215-${new Date().toISOString().split('T')[0]}`,
+      operationId: 'current',
+      worksheetNumber: 1,
+      operationalPeriodStart: new Date(),
+      operationalPeriodEnd: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      incidentName: '',
+      incidentNumber: '',
+      preparedBy: '',
+      preparedDate: new Date(),
+      sectionType: 'Operations',
+      status: 'draft',
+      priorityLevel: 1,
+      missionStatement: '',
+      situationSummary: '',
+      specialInstructions: '',
+      versionNumber: 1,
+      isCurrentVersion: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
     };
-
-    initializeCleanWorksheet();
+    
+    setWorksheetData(emptyWorksheet);
+    setIsLoading(false);
   }, []);
+
+  // Convert resources to work assignments whenever viewing Standard Form
+  const getWorkAssignments = (): WorkAssignment[] => {
+    return resourcesToWorkAssignments(resources);
+  };
 
   const handleSave = async (data: { worksheet: ICS215Worksheet; assignments: WorkAssignment[] }) => {
     console.log('Saving ICS 215 Data:', data);
     
-    // Simulate save operation
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Convert work assignments back to resources and update the store
+    const convertedResources = workAssignmentsToResources(data.assignments);
     
+    // Update each service line in the store
+    Object.entries(convertedResources).forEach(([serviceLineType, serviceLineResources]) => {
+      if (serviceLineResources) {
+        importResources(serviceLineType as ServiceLineType, serviceLineResources);
+      }
+    });
+    
+    // Update worksheet data
     setWorksheetData(data.worksheet);
-    setWorkAssignments(data.assignments);
     
+    // Show success message
     alert('ICS Form 215 saved successfully!');
   };
 
@@ -173,10 +182,10 @@ export function ICS215Demo() {
         <ICS215GridInterface />
       ) : (
         <>
-          {/* Form Component */}
+          {/* Form Component - now uses converted resources */}
           <ICS215StandardForm
             worksheetData={worksheetData}
-            workAssignments={workAssignments}
+            workAssignments={getWorkAssignments()}
             onSave={handleSave}
             printMode={false}
             readonly={false}
